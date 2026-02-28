@@ -24,14 +24,14 @@ function update_options()
     -- CRITICAL: Check if DXML is available before allowing vignette activation
     -- DXML is required to inject XML nodes - without it, the game will crash
     if stance_vignette_enabled and _G.DXML == nil then
-        printf("! [STANCE_VIGNETTE] WARNING: DXML not available - vignette feature disabled")
-        printf("! [STANCE_VIGNETTE] Install DXML mod to use stance vignette feature")
-        stance_vignette_enabled = false
+        -- printf("! [STANCE_VIGNETTE] WARNING: DXML not available - vignette feature disabled")
+        -- printf("! [STANCE_VIGNETTE] Install DXML mod to use stance vignette feature")
+        -- stance_vignette_enabled = false
         -- Force-uncheck the MCM option
         if ui_mcm then
-            ui_mcm.set("mcm/holdortoggle/qol/stance_vignette", false)
+            -- ui_mcm.set("mcm/holdortoggle/qol/stance_vignette", false)
         end
-        remove_vignette()
+        -- remove_vignette()
         return
     end
 
