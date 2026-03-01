@@ -22,6 +22,12 @@ local fluid_aim_last_fire_ammo = -1  -- tracks ammo when entering state 5 (eFire
 local fluid_aim_fire_blocked_frames = 0  -- counts frames where fire is pressed but weapon stays in state 0
 local fluid_aim_unjam_grace_active = {}  -- tracks if grace period is active for each weapon (wpn_id -> true)
 local fluid_aim_prev_arti_jam_status = {}  -- tracks previous arti_jamming jam status per weapon, detects unjam events
+local fluid_aim_prev_fire_held = false  -- previous frame fire button state to detect press (false->true transition)
+local fluid_aim_just_fired = false  -- tracks if weapon fired in current frame (prevent re-queue for single/burst)
+local fluid_aim_fire_mode_blocked_requeue = false  -- tracks if fire mode check blocked re-queue (prevents false jam detection)
+local fluid_aim_button_released_after_fire = false  -- set when button released after firing (allows re-fire on next press)
+local fluid_aim_button_released_since_fire = false  -- tracks if button was released since last fire (for single-fire re-queue detection)
+local fluid_aim_single_fire_requeue_used = false  -- tracks if single/burst re-queue already used during this button hold (prevents continuous fire)
 
 local function debug_log(msg)
     if holdortoggle_utils then holdortoggle_utils.debug_log(msg) end
@@ -33,7 +39,7 @@ local function is_weapon_jammed(wpn_id)
     -- Priority 1: Check arti_jamming module if available
     if arti_jamming and arti_jamming.get_jammed then
         local arti_jam_status = arti_jamming.get_jammed(wpn_id)
-        debug_log("[JAM_CHECK] arti_jamming.get_jammed(" .. tostring(wpn_id) .. ") = " .. tostring(arti_jam_status))
+        -- debug_log("[JAM_CHECK] arti_jamming.get_jammed(" .. tostring(wpn_id) .. ") = " .. tostring(arti_jam_status))
         return arti_jam_status
     end
 
@@ -331,17 +337,24 @@ local function actor_on_update()
             fluid_aim_fire_blocked_frames = 0  -- Reset blocked fire counter when fire cycle completes
         elseif state == 0 and fluid_aim_fire and fluid_aim_prev_wpn_state == 0 then
             -- Fire button held in idle state but weapon didn't transition to fire (blocked by jam)
-            fluid_aim_fire_blocked_frames = fluid_aim_fire_blocked_frames + 1
-            if fluid_aim_fire_blocked_frames >= 3 then
-                -- Fire has been pressed for 3+ frames but weapon won't fire - it's jammed
-                debug_log("[FIRE] Fire blocked: wpn_id=" .. tostring(wpn_id) .. " frames=" .. tostring(fluid_aim_fire_blocked_frames) .. " weapon severely jammed - STORED IN TABLE")
-                fluid_aim_jammed = true
-                fluid_aim_jammed_weapons[wpn_id] = true
-                fluid_aim_fire_blocked_frames = 0  -- Reset after detecting
+            -- BUT SKIP for single/burst weapons - they naturally stay idle when fire held without re-queue
+            local fire_mode = wpn:cast_Weapon():GetFireMode()
+            if fire_mode == -1 then  -- Full-auto only - should always transition to fire when held
+                fluid_aim_fire_blocked_frames = fluid_aim_fire_blocked_frames + 1
+                if fluid_aim_fire_blocked_frames >= 3 then
+                    -- Fire has been pressed for 3+ frames but weapon won't fire - it's jammed
+                    debug_log("[FIRE] Fire blocked: wpn_id=" .. tostring(wpn_id) .. " frames=" .. tostring(fluid_aim_fire_blocked_frames) .. " weapon severely jammed - STORED IN TABLE")
+                    fluid_aim_jammed = true
+                    fluid_aim_jammed_weapons[wpn_id] = true
+                    fluid_aim_fire_blocked_frames = 0  -- Reset after detecting
+                end
+            else
+                debug_log("[FIRE] Fire held in idle (single/burst mode fire_mode=" .. tostring(fire_mode) .. ") - not counting as jam")
             end
         elseif state ~= 0 or not fluid_aim_fire then
             -- Reset counter when fire released or state changes
             fluid_aim_fire_blocked_frames = 0
+            fluid_aim_fire_mode_blocked_requeue = false
         elseif state == 5 and fluid_aim_prev_wpn_state == 8 then
             -- Weapon transitioned from jam to fire - no longer actively jammed
             if fluid_aim_jammed then
@@ -387,23 +400,67 @@ local function actor_on_update()
                     end
                 end
                 
-                -- Queue shot if fire is held during weapon-raise animation (eShowing = 1)
-                if rapid_aim_enabled and fluid_aim_fire and not fluid_aim_reset_fire_on_load then
+                -- Queue shot only on fire button PRESS (transition from not-held to held) during weapon-raise animation (eShowing = 1)
+                -- This ensures single/burst weapons fire once per press, even if held continuously
+                local fire_button_press = fluid_aim_fire and not fluid_aim_prev_fire_held  -- transition from false to true
+                if rapid_aim_enabled and fire_button_press and not fluid_aim_reset_fire_on_load then
                     -- Check actual jam status from arti_jamming or fallback to table
                     local wpn_actually_jammed = is_weapon_jammed(wpn_id)
                     local in_unjam_grace = is_in_unjam_grace_period(wpn_id)
                     if not wpn_actually_jammed and not in_unjam_grace and state == 1 then
-                        if not fluid_aim_fire_queued then
-                            debug_log("[FIRE] queue set: eShowing jammed=" .. tostring(wpn_actually_jammed) .. " unjam_grace=" .. tostring(in_unjam_grace) .. " rapid_enabled=" .. tostring(rapid_aim_enabled))
-                        end
+                        debug_log("[FIRE] queue set on button press: eShowing jammed=" .. tostring(wpn_actually_jammed) .. " unjam_grace=" .. tostring(in_unjam_grace) .. " rapid_enabled=" .. tostring(rapid_aim_enabled))
                         fluid_aim_fire_queued = true
+                    elseif not wpn_actually_jammed and not in_unjam_grace and state == 0 and fluid_aim_button_released_after_fire then
+                        -- Button pressed in idle state, and was released after previous fire (tap+release+hold pattern)
+                        debug_log("[FIRE] queue set on button press: eIdle with button-release flag, allowing re-fire")
+                        fluid_aim_fire_queued = true
+                        fluid_aim_button_released_after_fire = false  -- Consume the flag
                     elseif state == 1 and (wpn_actually_jammed or in_unjam_grace) then
                         if wpn_actually_jammed then
-                            debug_log("[FIRE] NOT queueing (state=1 but jammed): rapid=" .. tostring(rapid_aim_enabled) .. " fire=" .. tostring(fluid_aim_fire) .. " reset=" .. tostring(fluid_aim_reset_fire_on_load) .. " jammed=" .. tostring(wpn_actually_jammed))
+                            debug_log("[FIRE] NOT queueing on press (state=1 but jammed): rapid=" .. tostring(rapid_aim_enabled) .. " fire=" .. tostring(fluid_aim_fire) .. " reset=" .. tostring(fluid_aim_reset_fire_on_load) .. " jammed=" .. tostring(wpn_actually_jammed))
                         else
-                            debug_log("[FIRE] NOT queueing (state=1 but in unjam grace period): rapid=" .. tostring(rapid_aim_enabled) .. " fire=" .. tostring(fluid_aim_fire) .. " in_unjam_grace=" .. tostring(in_unjam_grace))
+                            debug_log("[FIRE] NOT queueing on press (state=1 but in unjam grace period): rapid=" .. tostring(rapid_aim_enabled) .. " fire=" .. tostring(fluid_aim_fire) .. " in_unjam_grace=" .. tostring(in_unjam_grace))
                         end
                     end
+                elseif rapid_aim_enabled and fluid_aim_fire and fluid_aim_prev_fire_held and not fluid_aim_fire_queued then
+                    -- Fire held but not newly pressed, and queue not set - queue if:
+                    -- 1) Still aiming (eShowing = state 1), OR
+                    -- 2) Weapon just finished firing/reloading and returned to eIdle (state 0)
+                    local wpn_actually_jammed = is_weapon_jammed(wpn_id)
+                    if not wpn_actually_jammed and not is_in_unjam_grace_period(wpn_id) then
+                        if state == 1 then
+                            -- Still aiming, queue fire for when aim completes
+                            debug_log("[FIRE] queue set while holding (still aiming): state=" .. tostring(state))
+                            fluid_aim_fire_queued = true
+                        elseif state == 0 and fluid_aim_prev_wpn_state ~= 0 then
+                            -- Just returned to eIdle (weapon finished action) - queue next shot
+                            -- BUT ONLY FOR FULL-AUTO WEAPONS (fire_mode == -1) OR SINGLE/BURST WITH FIRE STILL HELD
+                            -- Single/burst weapons should fire once per button press, not continuously
+                            local fire_mode = wpn:cast_Weapon():GetFireMode()
+                            if fire_mode == -1 then  -- Full-auto only
+                                debug_log("[FIRE] queue set while holding (weapon ready, full-auto): prev_state=" .. tostring(fluid_aim_prev_wpn_state) .. " current_state=" .. tostring(state) .. " fire_mode=" .. tostring(fire_mode))
+                                fluid_aim_fire_queued = true
+                                fluid_aim_fire_mode_blocked_requeue = false
+                            else
+                                -- For single/burst: allow one re-queue when weapon returns to idle with fire still held
+                                -- This allows: press fire -> pump animation -> fire again (without releasing button)
+                                -- Only allow if we haven't already re-queued during this button hold
+                                if fluid_aim_prev_wpn_state == 5 and not fluid_aim_single_fire_requeue_used and fluid_aim_button_released_since_fire then
+                                    debug_log("[FIRE] queue set while holding (single/burst, post-fire with button release): fire_mode=" .. tostring(fire_mode))
+                                    fluid_aim_fire_queued = true
+                                    fluid_aim_single_fire_requeue_used = true
+                                else
+                                    debug_log("[FIRE] NOT queueing (single/burst): prev_state=" .. tostring(fluid_aim_prev_wpn_state) .. " requeue_used=" .. tostring(fluid_aim_single_fire_requeue_used) .. " btn_released_since_fire=" .. tostring(fluid_aim_button_released_since_fire))
+                                end
+                                fluid_aim_button_released_after_fire = false
+                            end
+                        end
+                    end
+                end
+                -- Reset flags on new button press
+                if fire_button_press then
+                    fluid_aim_button_released_after_fire = false
+                    fluid_aim_single_fire_requeue_used = false  -- Reset re-queue flag for new button press
                 end
                 -- Clear fire queue if weapon is currently jammed (eMisfire = 8)
                 -- But NOT if we just interrupted a reload (pump-action fire must still go through)
@@ -418,7 +475,7 @@ local function actor_on_update()
                 -- fluid_aim_reload_interrupted allows firing even through intermediate states (e.g. eBore pump animation)
                 -- Note: Don't check jam status here - let arti_jamming handle it with proper sound feedback
                 local should_fire = fluid_aim_fire_queued and state == 0 and
-                        (fluid_aim_prev_wpn_state == 1 or fluid_aim_prev_wpn_state == 7 or fluid_aim_reload_interrupted)
+                        (fluid_aim_prev_wpn_state == 1 or (fluid_aim_prev_wpn_state == 5 and not fluid_aim_just_fired) or fluid_aim_prev_wpn_state == 7 or fluid_aim_reload_interrupted)
 
                 if state == 0 and fluid_aim_fire_queued then
                     debug_log("[FIRE] eIdle check: wpn_id=" .. tostring(wpn_id) .. " queued=" .. tostring(fluid_aim_fire_queued) .. " jammed=" .. tostring(fluid_aim_jammed) .. " in_jam_table=" .. tostring(fluid_aim_jammed_weapons[wpn_id] == true) .. " prev_state=" .. tostring(fluid_aim_prev_wpn_state) .. " interrupted=" .. tostring(fluid_aim_reload_interrupted) .. " should_fire=" .. tostring(should_fire))
@@ -433,6 +490,8 @@ local function actor_on_update()
 
                     level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
                     fluid_aim_fire_queued = false
+                    fluid_aim_just_fired = true  -- Prevent immediate re-queue for single/burst weapons
+                    fluid_aim_button_released_since_fire = false  -- Reset for new fire cycle
                     fluid_aim_reload_interrupted = false
 
                     -- Schedule multiple checks to catch jam after firing
@@ -484,6 +543,14 @@ local function actor_on_update()
                     end
                     fluid_aim_fire_queued = false
                     fluid_aim_reload_interrupted = false
+                    fluid_aim_single_fire_requeue_used = false  -- Reset re-queue flag when button released
+                    -- Mark that button was released after firing (allows re-fire on press+hold)
+                    -- This enables tap+release+hold pattern for single-fire weapons
+                    if fluid_aim_just_fired or (wpn and wpn:get_ammo_in_magazine() < 7) then
+                        fluid_aim_button_released_after_fire = true
+                        fluid_aim_button_released_since_fire = true  -- Track that button was released since last fire
+                        debug_log("[FIRE] Button released after fire - allowing re-fire on next press")
+                    end
                 end
                 -- Interrupt reload after first shell loads if fire/aim is held (eReload = 7)
                 -- level.press_action misses animation-end checkpoints, so we monitor ammo count instead:
@@ -635,6 +702,12 @@ local function actor_on_update()
         fluid_aim_weapon_frame_count = fluid_aim_weapon_frame_count + 1
     end
     wpn = nil
+
+    -- Update fire button state for next frame (detect press/release transitions)
+    fluid_aim_prev_fire_held = fluid_aim_fire
+
+    -- Reset just-fired flag (allow re-queuing on next frame)
+    fluid_aim_just_fired = false
 end
 
 -- Functions
