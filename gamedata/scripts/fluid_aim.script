@@ -69,12 +69,28 @@ local rapid_aim_enabled = false
 local rapid_aim_pistol_delay = 0.1
 local rapid_aim_other_delay = 0.3
 
+-- Magazine reload cancel settings
+local mag_reload_cancel_enabled = false
+local mag_reload_cancel_delay = 0.2
+local mag_reload_cancel_ready = {}  -- tracks which weapons are ready to fire after mag reload (wpn_id -> true)
+local mag_reload_prev_ammo = {}  -- separate ammo tracking for magazine reload cancel (wpn_id -> ammo_count)
+
+-- Pump-action reload cancel settings
+local pump_reload_cancel_enabled = false
+local pump_reload_cancel_delay = 0.1
+local pump_reload_cancel_ready = {}  -- tracks which weapons are ready to fire after pump reload (wpn_id -> true)
+local pump_reload_prev_ammo = {}  -- separate ammo tracking for pump-action reload cancel (wpn_id -> ammo_count)
+
 -- Update settings from MCM
 function fluid_aim_update_settings()
     if ui_mcm then
         rapid_aim_enabled = ui_mcm.get("mcm/holdortoggle/qol/rapid_aim")
         rapid_aim_pistol_delay = ui_mcm.get("mcm/holdortoggle/qol/rapid_aim_pistol_delay")
         rapid_aim_other_delay = ui_mcm.get("mcm/holdortoggle/qol/rapid_aim_other_delay")
+        mag_reload_cancel_enabled = ui_mcm.get("mcm/holdortoggle/qol/mag_reload_cancel")
+        mag_reload_cancel_delay = ui_mcm.get("mcm/holdortoggle/qol/mag_reload_cancel_delay")
+        pump_reload_cancel_enabled = ui_mcm.get("mcm/holdortoggle/qol/pump_reload_cancel")
+        pump_reload_cancel_delay = ui_mcm.get("mcm/holdortoggle/qol/pump_reload_cancel_delay")
     end
 end
 
@@ -229,6 +245,10 @@ local function actor_on_update()
             if fluid_aim_current_wpn_id then
                 fluid_aim_unjam_grace_active[fluid_aim_current_wpn_id] = nil
                 fluid_aim_prev_arti_jam_status[fluid_aim_current_wpn_id] = nil
+                mag_reload_cancel_ready[fluid_aim_current_wpn_id] = nil
+                mag_reload_prev_ammo[fluid_aim_current_wpn_id] = nil
+                pump_reload_cancel_ready[fluid_aim_current_wpn_id] = nil
+                pump_reload_prev_ammo[fluid_aim_current_wpn_id] = nil
             end
             fluid_aim_current_wpn_id = wpn_id
             -- Inherit this weapon's known jam state so we don't fire into a previously-jammed weapon
@@ -519,6 +539,95 @@ local function actor_on_update()
                     end
                     fluid_aim_prev_reload_ammo = -1
                 end
+
+                -- Magazine reload animation cancel (with adjustable delay)
+                -- Start timer window after round/magazine finishes loading (ammo increases)
+                if mag_reload_cancel_enabled and not is_weapon_jammed(wpn_id) then
+                    if state == 7 then
+                        local cur_ammo = wpn:get_ammo_in_magazine()
+                        local prev_mag_ammo = mag_reload_prev_ammo[wpn_id] or -1
+
+                        if prev_mag_ammo < 0 then
+                            -- Start tracking ammo during reload
+                            mag_reload_prev_ammo[wpn_id] = cur_ammo
+                            debug_log("[MAG_CANCEL] Reload tracking start: wpn_id=" .. tostring(wpn_id) .. " ammo=" .. tostring(cur_ammo))
+                        elseif cur_ammo > prev_mag_ammo then
+                            -- Ammo increased - round/magazine finished loading
+                            local delta = cur_ammo - prev_mag_ammo
+                            debug_log("[MAG_CANCEL] Ammo increased: wpn_id=" .. tostring(wpn_id) .. " prev=" .. tostring(prev_mag_ammo) .. " cur=" .. tostring(cur_ammo) .. " delta=" .. tostring(delta))
+                            if not mag_reload_cancel_ready[wpn_id] then
+                                debug_log("[MAG_CANCEL] Round loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(mag_reload_cancel_delay) .. "s")
+                                -- Start timer for mag_reload_cancel_delay
+                                local wpn_id_capture = wpn_id
+                                CreateTimeEvent("mag_reload_cancel", "mag_" .. tostring(wpn_id), mag_reload_cancel_delay, function()
+                                    mag_reload_cancel_ready[wpn_id_capture] = true
+                                    debug_log("[MAG_CANCEL] Cancel window expired, weapon can fire: wpn_id=" .. tostring(wpn_id_capture))
+                                    return true
+                                end)
+                            end
+                            mag_reload_prev_ammo[wpn_id] = cur_ammo
+                        end
+                    end
+                end
+
+                -- If fire button is held and weapon is ready, exit and fire
+                if mag_reload_cancel_enabled and mag_reload_cancel_ready[wpn_id] and fluid_aim_fire and state == 7 and not is_weapon_jammed(wpn_id) then
+                    debug_log("[MAG_CANCEL] Fire held while ready: wpn_id=" .. tostring(wpn_id) .. " exiting reload and firing")
+                    wpn:switch_state(0)
+                    fluid_aim_fire_queued = true
+                    mag_reload_cancel_ready[wpn_id] = nil
+                end
+
+                -- Reset tracking when exiting reload state
+                if state ~= 7 and mag_reload_prev_ammo[wpn_id] then
+                    debug_log("[MAG_CANCEL] left eReload state: wpn_id=" .. tostring(wpn_id))
+                    mag_reload_prev_ammo[wpn_id] = nil
+                end
+
+                -- Pump-action reload animation cancel (with adjustable delay)
+                -- Start timer window after shell finishes loading (ammo increases)
+                if pump_reload_cancel_enabled and not is_weapon_jammed(wpn_id) then
+                    if state == 7 then
+                        local cur_ammo = wpn:get_ammo_in_magazine()
+                        local prev_pump_ammo = pump_reload_prev_ammo[wpn_id] or -1
+
+                        if prev_pump_ammo < 0 then
+                            -- Start tracking ammo during reload
+                            pump_reload_prev_ammo[wpn_id] = cur_ammo
+                            debug_log("[PUMP_CANCEL] Reload tracking start: wpn_id=" .. tostring(wpn_id) .. " ammo=" .. tostring(cur_ammo))
+                        elseif cur_ammo > prev_pump_ammo then
+                            -- Ammo increased - shell finished loading
+                            local delta = cur_ammo - prev_pump_ammo
+                            debug_log("[PUMP_CANCEL] Ammo increased: wpn_id=" .. tostring(wpn_id) .. " prev=" .. tostring(prev_pump_ammo) .. " cur=" .. tostring(cur_ammo) .. " delta=" .. tostring(delta))
+                            if not pump_reload_cancel_ready[wpn_id] then
+                                debug_log("[PUMP_CANCEL] Shell loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(pump_reload_cancel_delay) .. "s")
+                                -- Start timer for pump_reload_cancel_delay
+                                local wpn_id_capture = wpn_id
+                                CreateTimeEvent("pump_reload_cancel", "pump_" .. tostring(wpn_id), pump_reload_cancel_delay, function()
+                                    pump_reload_cancel_ready[wpn_id_capture] = true
+                                    debug_log("[PUMP_CANCEL] Cancel window expired, weapon can fire: wpn_id=" .. tostring(wpn_id_capture))
+                                    return true
+                                end)
+                            end
+                            pump_reload_prev_ammo[wpn_id] = cur_ammo
+                        end
+                    end
+                end
+
+                -- If fire button is held and weapon is ready, exit and fire
+                if pump_reload_cancel_enabled and pump_reload_cancel_ready[wpn_id] and fluid_aim_fire and state == 7 and not is_weapon_jammed(wpn_id) then
+                    debug_log("[PUMP_CANCEL] Fire held while ready: wpn_id=" .. tostring(wpn_id) .. " exiting reload and firing")
+                    wpn:switch_state(0)
+                    fluid_aim_fire_queued = true
+                    pump_reload_cancel_ready[wpn_id] = nil
+                end
+
+                -- Reset tracking when exiting reload state
+                if state ~= 7 and pump_reload_prev_ammo[wpn_id] then
+                    debug_log("[PUMP_CANCEL] left eReload state: wpn_id=" .. tostring(wpn_id))
+                    pump_reload_prev_ammo[wpn_id] = nil
+                end
+
             end
         end
         fluid_aim_prev_wpn_state = state
@@ -556,6 +665,29 @@ local function on_key_press(key)
     if (key == bind_to_dik(key_bindings.kWPN_FIRE)) then
         debug_log("[KEY] FIRE pressed: reset_fire_on_load=true -> false")
         fluid_aim_reset_fire_on_load = false
+
+        -- Check if weapon is ready to fire from mag/pump reload cancel during reload animation
+        local wpn = db.actor and db.actor:active_item()
+        if wpn and IsWeapon(wpn) then
+            local wpn_id = wpn:id()
+            local state = wpn:get_state()
+
+            -- If still in reload state but ready to fire from mag_reload_cancel, exit and fire
+            if state == 7 and mag_reload_cancel_enabled and mag_reload_cancel_ready[wpn_id] then
+                debug_log("[KEY] Fire tapped while reload ready (mag_cancel): wpn_id=" .. tostring(wpn_id) .. " forcing exit reload")
+                wpn:switch_state(0)
+                fluid_aim_fire_queued = true
+                mag_reload_cancel_ready[wpn_id] = nil
+            end
+
+            -- If still in reload state but ready to fire from pump_reload_cancel, exit and fire
+            if state == 7 and pump_reload_cancel_enabled and pump_reload_cancel_ready[wpn_id] then
+                debug_log("[KEY] Fire tapped while reload ready (pump_cancel): wpn_id=" .. tostring(wpn_id) .. " forcing exit reload")
+                wpn:switch_state(0)
+                fluid_aim_fire_queued = true
+                pump_reload_cancel_ready[wpn_id] = nil
+            end
+        end
     end
     if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
         if ui_options.get("control/general/aim_toggle") and axr_main.weapon_is_zoomed and not is_holdortoggle_managing_aim() then
