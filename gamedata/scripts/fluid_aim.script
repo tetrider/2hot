@@ -228,6 +228,12 @@ local function actor_on_update()
                         fluid_aim_jammed_weapons[wpn_id] = nil
                         fluid_aim_jammed = false
                     end
+                    -- Weapon has already fired - clear queued fire to prevent double-firing
+                    if fluid_aim_fire_queued then
+                        debug_log("[FIRE] Clearing queued fire - weapon already fired naturally")
+                        fluid_aim_fire_queued = false
+                        fluid_aim_reload_interrupted = false
+                    end
                 end
             end
             fluid_aim_last_fire_ammo = -1  -- Reset for next fire
