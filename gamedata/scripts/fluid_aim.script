@@ -298,17 +298,18 @@ local function actor_on_update()
                     end
                 end
                 -- Clear fire queue if weapon is currently jammed (eMisfire = 8)
-                if fluid_aim_jammed or state == 8 then
+                -- But NOT if we just interrupted a reload (pump-action fire must still go through)
+                if (fluid_aim_jammed or state == 8) and not fluid_aim_reload_interrupted then
                     if fluid_aim_fire_queued then
                         debug_log("[FIRE] queue cleared: jammed=" .. tostring(fluid_aim_jammed) .. " state=" .. tostring(state))
                     end
                     fluid_aim_fire_queued = false
-                    fluid_aim_reload_interrupted = false
                 end
 
                 -- Fire exactly once when weapon finishes raising or is forced out of reload (-> eIdle)
                 -- fluid_aim_reload_interrupted allows firing even through intermediate states (e.g. eBore pump animation)
-                local should_fire = fluid_aim_fire_queued and not fluid_aim_jammed and state == 0 and
+                -- Note: Don't check jam status here - let arti_jamming handle it with proper sound feedback
+                local should_fire = fluid_aim_fire_queued and state == 0 and
                         (fluid_aim_prev_wpn_state == 1 or fluid_aim_prev_wpn_state == 7 or fluid_aim_reload_interrupted)
 
                 if state == 0 and fluid_aim_fire_queued then
@@ -379,7 +380,7 @@ local function actor_on_update()
                 -- Interrupt reload after first shell loads if fire is held (eReload = 7)
                 -- level.press_action misses animation-end checkpoints, so we monitor ammo count instead:
                 -- when ammo increases (shell just loaded), force weapon to eIdle then fire from queue
-                if rapid_aim_enabled and fluid_aim_fire and not fluid_aim_reset_fire_on_load and not fluid_aim_jammed then
+                if rapid_aim_enabled and fluid_aim_fire and not fluid_aim_reset_fire_on_load and not is_weapon_jammed(wpn_id) then
                     if state == 7 then
                         local cur_ammo = wpn:get_ammo_in_magazine()
                         debug_log("[FRAME] eReload state: rapid=" .. tostring(rapid_aim_enabled) .. " fire=" .. tostring(fluid_aim_fire) .. " reset=" .. tostring(fluid_aim_reset_fire_on_load) .. " jammed=" .. tostring(fluid_aim_jammed) .. " cur_ammo=" .. tostring(cur_ammo) .. " prev_ammo=" .. tostring(fluid_aim_prev_reload_ammo))
@@ -404,6 +405,12 @@ local function actor_on_update()
                             end
                         end
                     else
+                        -- Fallback: If exiting eReload while fire is held, queue fire (handles manual interrupt)
+                        if fluid_aim_prev_wpn_state == 7 and state == 0 and fluid_aim_fire and not fluid_aim_reset_fire_on_load then
+                            debug_log("[FIRE] pump-action fallback: exited eReload with fire held, queue fire")
+                            fluid_aim_fire_queued = true
+                            fluid_aim_reload_interrupted = true
+                        end
                         if fluid_aim_prev_reload_ammo >= 0 then
                             debug_log("[FRAME] left eReload state (was tracking ammo), reset: prev_state=" .. tostring(fluid_aim_prev_wpn_state))
                         end
