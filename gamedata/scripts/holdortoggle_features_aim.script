@@ -44,10 +44,43 @@ function on_key_press(key)
                 return
             end
 
-            if wpn:get_state() == 7 then
-                utils.debug_log("[AIM] Aim pressed during pump-action reload, waiting for shell load")
-                if _G.fluid_aim_request_aim_interrupt then
-                    _G.fluid_aim_request_aim_interrupt()
+            local state = wpn:get_state()
+            local wpn_id = wpn:id()
+
+            -- Check if weapon is ready to aim from mag/pump reload cancel during reload animation
+            if state == 7 then
+                -- Magazine reload cancel: exit and aim
+                if _G.fluid_aim_mag_reload_aim_ready and _G.fluid_aim_mag_reload_aim_ready[wpn_id] then
+                    utils.debug_log("[AIM] Aim tapped while mag reload ready: wpn_id=" .. tostring(wpn_id) .. " forcing exit reload and aiming")
+                    wpn:switch_state(0)
+                    -- Trigger aim via delayed press (same as fire logic)
+                    CreateTimeEvent("mag_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0.001, function()
+                        if db.actor and db.actor:active_item() and db.actor:active_item():id() == wpn_id then
+                            level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                            level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                        end
+                        return true
+                    end)
+                    _G.fluid_aim_mag_reload_aim_ready[wpn_id] = nil
+                -- Pump-action reload cancel: exit and aim
+                elseif _G.fluid_aim_pump_reload_aim_ready and _G.fluid_aim_pump_reload_aim_ready[wpn_id] then
+                    utils.debug_log("[AIM] Aim tapped while pump reload ready: wpn_id=" .. tostring(wpn_id) .. " forcing exit reload and aiming")
+                    wpn:switch_state(0)
+                    -- Trigger aim via delayed press (same as fire logic)
+                    CreateTimeEvent("pump_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0.001, function()
+                        if db.actor and db.actor:active_item() and db.actor:active_item():id() == wpn_id then
+                            level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                            level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                        end
+                        return true
+                    end)
+                    _G.fluid_aim_pump_reload_aim_ready[wpn_id] = nil
+                else
+                    -- Pump-action reload interrupt: If in reload state, signal to wait for shell load then aim
+                    utils.debug_log("[AIM] Aim pressed during pump-action reload, waiting for shell load")
+                    if _G.fluid_aim_request_aim_interrupt then
+                        _G.fluid_aim_request_aim_interrupt()
+                    end
                 end
             end
         end
