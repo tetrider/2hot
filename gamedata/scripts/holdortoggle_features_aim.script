@@ -53,10 +53,10 @@ function on_key_press(key)
                 if _G.fluid_aim_mag_reload_aim_ready and _G.fluid_aim_mag_reload_aim_ready[wpn_id] then
                     utils.debug_log("[AIM] Aim tapped while mag reload ready: wpn_id=" .. tostring(wpn_id) .. " forcing exit reload and aiming")
                     wpn:switch_state(0)
-                    -- Trigger aim via delayed press (same as fire logic)
-                    CreateTimeEvent("mag_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0.001, function()
+                    -- Trigger aim via delayed press after animation settles (one frame delay)
+                    CreateTimeEvent("mag_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0, function()
                         if db.actor and db.actor:active_item() and db.actor:active_item():id() == wpn_id then
-                            level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                            -- level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
                             level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
                         end
                         return true
@@ -66,10 +66,10 @@ function on_key_press(key)
                 elseif _G.fluid_aim_pump_reload_aim_ready and _G.fluid_aim_pump_reload_aim_ready[wpn_id] then
                     utils.debug_log("[AIM] Aim tapped while pump reload ready: wpn_id=" .. tostring(wpn_id) .. " forcing exit reload and aiming")
                     wpn:switch_state(0)
-                    -- Trigger aim via delayed press (same as fire logic)
-                    CreateTimeEvent("pump_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0.001, function()
+                    -- Trigger aim via delayed press after animation settles (one frame delay)
+                    CreateTimeEvent("pump_reload_aim_cancel", "aim_" .. tostring(wpn_id), 0, function()
                         if db.actor and db.actor:active_item() and db.actor:active_item():id() == wpn_id then
-                            level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                            -- level.release_action(bind_to_dik(key_bindings.kWPN_ZOOM))
                             level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
                         end
                         return true
