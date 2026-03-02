@@ -28,6 +28,7 @@ local fluid_aim_fire_mode_blocked_requeue = false  -- tracks if fire mode check 
 local fluid_aim_button_released_after_fire = false  -- set when button released after firing (allows re-fire on next press)
 local fluid_aim_button_released_since_fire = false  -- tracks if button was released since last fire (for single-fire re-queue detection)
 local fluid_aim_single_fire_requeue_used = false  -- tracks if single/burst re-queue already used during this button hold (prevents continuous fire)
+local fluid_aim_single_fire_cooldown_active = {}  -- tracks if single-fire cooldown is active per weapon (wpn_id -> true), prevents rapid triple-fire
 
 local function debug_log(msg)
     if holdortoggle_utils then holdortoggle_utils.debug_log(msg) end
@@ -253,10 +254,11 @@ local function actor_on_update()
                 end
             end
             debug_log("[FIRE] weapon changed: id=" .. tostring(wpn_id) .. " inherited_jam=" .. tostring(inherited_jam) .. " prev_queue=" .. tostring(fluid_aim_fire_queued) .. " prev_state=" .. tostring(fluid_aim_prev_wpn_state))
-            -- Clear unjam grace period for the OLD weapon being switched away from
+            -- Clear state for the OLD weapon being switched away from
             if fluid_aim_current_wpn_id then
                 fluid_aim_unjam_grace_active[fluid_aim_current_wpn_id] = nil
                 fluid_aim_prev_arti_jam_status[fluid_aim_current_wpn_id] = nil
+                fluid_aim_single_fire_cooldown_active[fluid_aim_current_wpn_id] = nil  -- Clear single-fire cooldown
                 mag_reload_cancel_ready[fluid_aim_current_wpn_id] = nil
                 mag_reload_prev_ammo[fluid_aim_current_wpn_id] = nil
                 pump_reload_cancel_ready[fluid_aim_current_wpn_id] = nil
@@ -480,14 +482,15 @@ local function actor_on_update()
                             else
                                 -- For single/burst: allow one re-queue when weapon returns to idle with fire still held
                                 -- This allows: press fire -> pump animation -> fire again (without releasing button)
-                                -- Only allow if we haven't already re-queued during this button hold
-                                if fluid_aim_prev_wpn_state == 5 and not fluid_aim_single_fire_requeue_used and fluid_aim_button_released_since_fire then
+                                -- Only allow if we haven't already re-queued during this button hold AND cooldown has expired
+                                local cooldown_expired = not fluid_aim_single_fire_cooldown_active[wpn_id]
+                                if fluid_aim_prev_wpn_state == 5 and not fluid_aim_single_fire_requeue_used and fluid_aim_button_released_since_fire and cooldown_expired then
                                     debug_log("[FIRE] queue set while holding (single/burst, post-fire with button release): fire_mode=" .. tostring(fire_mode))
                                     fluid_aim_fire_queued = true
                                     fluid_aim_single_fire_requeue_used = true
                                     fluid_aim_button_released_since_fire = false  -- Reset to prevent spurious re-queue from subsequent press
                                 else
-                                    debug_log("[FIRE] NOT queueing (single/burst): prev_state=" .. tostring(fluid_aim_prev_wpn_state) .. " requeue_used=" .. tostring(fluid_aim_single_fire_requeue_used) .. " btn_released_since_fire=" .. tostring(fluid_aim_button_released_since_fire))
+                                    debug_log("[FIRE] NOT queueing (single/burst): prev_state=" .. tostring(fluid_aim_prev_wpn_state) .. " requeue_used=" .. tostring(fluid_aim_single_fire_requeue_used) .. " btn_released_since_fire=" .. tostring(fluid_aim_button_released_since_fire) .. " cooldown_expired=" .. tostring(cooldown_expired))
                                 end
                                 fluid_aim_button_released_after_fire = false
                             end
@@ -523,7 +526,11 @@ local function actor_on_update()
                 -- fluid_aim_reload_interrupted allows firing even through intermediate states (e.g. eBore pump animation)
                 -- Note: Don't check jam status here - let arti_jamming handle it with proper sound feedback
                 -- Allow firing after transitioning from: eShowing(1), eFire(5), eReload(7), eZoom(11), or reload_interrupted
-                local should_fire = fluid_aim_fire_queued and (
+                -- For single-fire weapons: enforce 100ms cooldown between fires via TimeEvent (prevents rapid triple-fire)
+                local fire_mode = wpn:cast_Weapon():GetFireMode()
+                local fire_cooldown_ok = (fire_mode ~= 1) or not fluid_aim_single_fire_cooldown_active[wpn_id]  -- single-fire needs cooldown to expire
+
+                local should_fire = fluid_aim_fire_queued and fire_cooldown_ok and (
                         (state == 0 and (fluid_aim_prev_wpn_state == 1 or (fluid_aim_prev_wpn_state == 5 and not fluid_aim_just_fired) or fluid_aim_prev_wpn_state == 7 or fluid_aim_prev_wpn_state == 11 or fluid_aim_reload_interrupted)) or
                         (state == 11 and fluid_aim_prev_wpn_state == 5 and fluid_aim_fire)  -- Fire while aiming if came from fire state and button still held
                 )
@@ -551,6 +558,16 @@ local function actor_on_update()
                         return true
                     end)
                     fluid_aim_fire_queued = false
+                    -- Start 100ms cooldown for single-fire weapons (prevent rapid triple-fire)
+                    if fire_mode == 1 then
+                        fluid_aim_single_fire_cooldown_active[wpn_id] = true
+                        local wpn_id_cooldown = wpn_id
+                        CreateTimeEvent("fluid_aim_single_fire_cooldown", "cooldown_" .. tostring(wpn_id), 0.1, function()
+                            fluid_aim_single_fire_cooldown_active[wpn_id_cooldown] = nil
+                            debug_log("[COOLDOWN] Single-fire cooldown expired: wpn_id=" .. tostring(wpn_id_cooldown))
+                            return true
+                        end)
+                    end
                     fluid_aim_just_fired = true  -- Prevent immediate re-queue for single/burst weapons
                     fluid_aim_button_released_since_fire = false  -- Reset for new fire cycle
                     fluid_aim_single_fire_requeue_used = false  -- Reset re-queue flag for new fire cycle
