@@ -1,0 +1,107 @@
+-- holdortoggle/features/fdda_integration.script
+-- Auto-cancel lean/aim toggles when FDDA animations start
+
+local state = holdortoggle_state
+local utils = holdortoggle_utils
+
+-- Track previous FDDA animation state
+local was_fdda_running = false
+local whitelisted = false
+
+function on_game_start()
+    -- Add lean keys to FDDA's whitelist using exposed global from unlocalizer
+    if not whitelisted and _G.key_bindings_whitelist then
+        pcall(function()
+            local left_lookout = bind_to_dik(key_bindings.kL_LOOKOUT)
+            local right_lookout = bind_to_dik(key_bindings.kR_LOOKOUT)
+
+            if left_lookout and right_lookout then
+                _G.key_bindings_whitelist[left_lookout] = true
+                _G.key_bindings_whitelist[right_lookout] = true
+                whitelisted = true
+                utils.debug_log("[FDDA INTEGRATION] Added lean keys to FDDA whitelist: left=%d right=%d",
+                    left_lookout, right_lookout)
+            end
+        end)
+    end
+
+    if not whitelisted then
+        utils.debug_log("[FDDA INTEGRATION] Whitelist unavailable or already whitelisted")
+    end
+
+    -- Start monitoring FDDA animation state every 0.5 seconds
+    CreateTimeEvent("holdortoggle_fdda", "monitor", 0.5, function()
+        check_fdda_state()
+        return false
+    end)
+end
+
+function check_fdda_state()
+    -- Check if FDDA Redone is available
+    if not _G.lam2 then
+        return
+    end
+
+    local is_fdda_running = _G.lam2.is_running()
+
+    -- Detect FDDA animation START (transition from not running to running)
+    if is_fdda_running and not was_fdda_running then
+        utils.debug_log("[FDDA INTEGRATION] FDDA animation started - canceling active lean/aim")
+        cancel_active_lean_aim()
+    end
+
+    was_fdda_running = is_fdda_running
+end
+
+function cancel_active_lean_aim()
+    -- Debug: Log state conditions
+    local left_lean = state.holding_lean_left
+    local right_lean = state.holding_lean_right
+    local aiming = state.holding_aim
+    utils.debug_log("[FDDA INTEGRATION] State flags: left_lean=" .. tostring(left_lean) .. " right_lean=" .. tostring(right_lean) .. " aiming=" .. tostring(aiming))
+
+    local in_left_lookout = IsMoveState("mcLLookout")
+    local in_right_lookout = IsMoveState("mcRLookout")
+    local is_zoomed = _G.axr_main and _G.axr_main.weapon_is_zoomed or false
+    utils.debug_log("[FDDA INTEGRATION] Movement: mcLLookout=" .. tostring(in_left_lookout) .. " mcRLookout=" .. tostring(in_right_lookout) .. " zoomed=" .. tostring(is_zoomed))
+
+    -- Cancel lean if active - check movement state directly, don't rely on flags
+    if IsMoveState("mcLLookout") or IsMoveState("mcRLookout") then
+        utils.debug_log("[FDDA INTEGRATION] Canceling lean via g_lookout_toggle console command")
+        pcall(function()
+            get_console():execute("g_lookout_toggle off")
+        end)
+        state.holding_lean_left = false
+        state.holding_lean_right = false
+
+        -- Restore toggle mode after short delay
+        CreateTimeEvent("holdortoggle_fdda", "restore_lookout", 0.1, function()
+            pcall(function()
+                get_console():execute("g_lookout_toggle on")
+            end)
+            return true
+        end)
+    end
+
+    -- Cancel aim if active - check weapon zoom state directly
+    if _G.axr_main and _G.axr_main.weapon_is_zoomed then
+        utils.debug_log("[FDDA INTEGRATION] Canceling aim zoom")
+
+        local wpn = db.actor and db.actor:active_item()
+        if wpn and IsWeapon(wpn) then
+            pcall(function()
+                local cWeapon = wpn:cast_Weapon()
+                if cWeapon and cWeapon:IsZoomed() then
+                    cWeapon:SetZoomFactor(0)
+                    utils.debug_log("[FDDA INTEGRATION] Set zoom factor to 0")
+
+                    state.holding_aim = false
+                    state.aim_key_down = false
+
+                    SendScriptCallback("actor_on_weapon_zoom_out", wpn)
+                end
+            end)
+        end
+    end
+end
+

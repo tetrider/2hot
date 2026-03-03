@@ -19,6 +19,7 @@ local stance_vignette = holdortoggle_features_stance_vignette
 local vanilla_prone = holdortoggle_stance_systems_vanilla_prone
 local fluid_stance = holdortoggle_stance_systems_fluid_stance
 local progressive_stance = holdortoggle_stance_systems_progressive_stance
+local fdda_integration = holdortoggle_features_fdda_integration
 
 -- Initialize module cross-references
 function initialize()
