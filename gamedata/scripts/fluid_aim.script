@@ -29,6 +29,7 @@ local fluid_aim_button_released_after_fire = false  -- set when button released 
 local fluid_aim_button_released_since_fire = false  -- tracks if button was released since last fire (for single-fire re-queue detection)
 local fluid_aim_single_fire_requeue_used = false  -- tracks if single/burst re-queue already used during this button hold (prevents continuous fire)
 local fluid_aim_single_fire_cooldown_active = {}  -- tracks if single-fire cooldown is active per weapon (wpn_id -> true), prevents rapid triple-fire
+local fluid_aim_reload_interrupt_zoom_pending = {}  -- tracks per-weapon if pump-action interrupt with aim just happened (wpn_id -> true), prevents normal aim from pressing zoom too early
 
 local function debug_log(msg)
     if holdortoggle_utils then holdortoggle_utils.debug_log(msg) end
@@ -410,9 +411,12 @@ local function actor_on_update()
 
                 -- Aim weapon logic
                 if fluid_aim_aim and should_aim_be_active() then
-                    if not (axr_main.weapon_is_zoomed) and (game.actor_weapon_lowered() or not (state == 2 or state == 3 or state == 5)) then
-                        debug_log("[FLUID_AIM] scheduling aim: wpn_state=" .. tostring(state) .. " lowered=" .. tostring(game.actor_weapon_lowered()))
-                        CreateTimeEvent("fluid_aim_delay_aim", "fluid_aim_delay_aim", 0, fluid_aim_delay_aim_func)
+                    -- Skip zoom if pump-action interrupt with aim just happened - let its delayed zoom press handle it
+                    if not fluid_aim_reload_interrupt_zoom_pending[wpn_id] then
+                        if not (axr_main.weapon_is_zoomed) and (game.actor_weapon_lowered() or not (state == 2 or state == 3 or state == 5 or state == 7)) then
+                            debug_log("[FLUID_AIM] scheduling aim: wpn_state=" .. tostring(state) .. " lowered=" .. tostring(game.actor_weapon_lowered()))
+                            CreateTimeEvent("fluid_aim_delay_aim", "fluid_aim_delay_aim", 0, fluid_aim_delay_aim_func)
+                        end
                     end
                 end
                 
@@ -652,6 +656,24 @@ local function actor_on_update()
                                     debug_log("[AIM] pump-action interrupt with aim: switch_state(0)")
                                     fluid_aim_interrupt_with_aim = false
                                     wpn:switch_state(0)
+                                    -- Flag that interrupt is pending - prevents normal aim from pressing zoom too early
+                                    fluid_aim_reload_interrupt_zoom_pending[wpn_id] = true
+                                    -- Schedule zoom press after weapon animation settles (50ms delay)
+                                    local wpn_id_aim = wpn_id
+                                    CreateTimeEvent("fluid_aim_aim_interrupt", "aim_rapid_" .. tostring(wpn_id), 0.05, function()
+                                        if db.actor and db.actor:active_item() and db.actor:active_item():id() == wpn_id_aim then
+                                            -- Only press zoom if not already zoomed (prevents toggle-off from normal aim logic's press)
+                                            if not axr_main.weapon_is_zoomed then
+                                                level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                                                debug_log("[AIM] rapid aim interrupt: zoom pressed after reload exit (50ms settle time)")
+                                            else
+                                                debug_log("[AIM] rapid aim interrupt: skipped (already zoomed)")
+                                            end
+                                        end
+                                        -- Clear the pending flag after zoom press executes
+                                        fluid_aim_reload_interrupt_zoom_pending[wpn_id_aim] = nil
+                                        return true
+                                    end)
                                 else
                                     -- Fire button interrupt: queue fire
                                     debug_log("[FIRE] pump-action interrupt: switch_state(0)")

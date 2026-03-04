@@ -83,6 +83,7 @@ function on_key_press(key)
                     if _G.fluid_aim_request_aim_interrupt then
                         _G.fluid_aim_request_aim_interrupt()
                     end
+                    return  -- Don't activate normal aim while waiting for pump-action interrupt
                 end
             end
         end
