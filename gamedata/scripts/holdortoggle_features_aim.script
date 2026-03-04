@@ -94,7 +94,7 @@ function on_key_press(key)
             aim_toggle_disabled = true
             utils.debug_log("[AIM] key_press: Hold mode - aim_key_down=true, wpn_aim_toggle=off")
             -- Safety: restore toggle after 5s if something goes wrong
-            CreateTimeEvent("holdortoggle_aim_safety", "check", 50.0, function()
+            CreateTimeEvent("holdortoggle_aim_safety", "check", 5.0, function()
                 if (hot_aim == 0 or hot_aim == 2) and not state.holding_aim and aim_toggle_disabled then
                     get_console():execute("wpn_aim_toggle on")
                     aim_toggle_disabled = false
