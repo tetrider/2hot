@@ -53,8 +53,6 @@ end
 function on_mcm_load()
     local options = {
         id = "holdortoggle",
-        sh = false,
-        text = "ui_mcm_menu_holdortoggle",
         gr = {
             -- Main Settings Tab
             {id = "main", sh = true, text = "ui_mcm_holdortoggle_main", gr = {
@@ -117,7 +115,7 @@ function on_mcm_load()
             }},
         }
     }
-    return options, "mcm"
+    return options
 end
 
 -- Sync MCM values from game settings

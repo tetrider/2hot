@@ -2,12 +2,12 @@
 <string_table>
 	<!-- Mod Title -->
 	<string id="ui_mcm_menu_holdortoggle">
-		<text>Hold or Toggle</text>
+		<text>2HOT</text>
 	</string>
 
 	<!-- Tab Titles -->
 	<string id="ui_mcm_holdortoggle_main">
-		<text>Main Settings</text>
+		<text>Hold or Toggle</text>
 	</string>
 	<string id="ui_mcm_holdortoggle_qol">
 		<text>QoL Features</text>
@@ -115,10 +115,10 @@
 	<!-- ========================================== -->
 
 	<!-- hot_sprint_cancel -->
-	<string id="ui_mcm_mcm_holdortoggle_qol_hot_sprint_cancel">
+	<string id="ui_mcm_holdortoggle_qol_hot_sprint_cancel">
 		<text>Alternative Sprint Canceling</text>
 	</string>
-	<string id="ui_mcm_mcm_holdortoggle_qol_hot_sprint_cancel_desc">
+	<string id="ui_mcm_holdortoggle_qol_hot_sprint_cancel_desc">
 		<text>Sprinting will only cancel actions when MOVING FORWARD so you can use LSHIFT modifiers fluidly when Sprint is on LSHIFT</text>
 	</string>
 
@@ -155,16 +155,16 @@
 	</string>
 
 	<!-- pda_mode list items -->
-	<string id="mcm_holdortoggle_qol_pda_mode_lst_Default">
+	<string id="holdortoggle_qol_pda_mode_lst_Default">
 		<text>Default</text>
 	</string>
-	<string id="mcm_holdortoggle_qol_pda_mode_lst_On Release">
+	<string id="holdortoggle_qol_pda_mode_lst_On Release">
 		<text>On Release</text>
 	</string>
-	<string id="mcm_holdortoggle_qol_pda_mode_lst_Hold to Zoom">
+	<string id="holdortoggle_qol_pda_mode_lst_Hold to Zoom">
 		<text>Hold to Zoom</text>
 	</string>
-	<string id="mcm_holdortoggle_qol_pda_mode_lst_On Release + Zoom">
+	<string id="holdortoggle_qol_pda_mode_lst_On Release + Zoom">
 		<text>On Release + Zoom</text>
 	</string>
 
@@ -254,15 +254,15 @@
 	</string>
 
 	<!-- pronekey -->
-	<string id="ui_mcm_mcm_holdortoggle_stance_pronekey">
+	<string id="ui_mcm_holdortoggle_stance_pronekey">
 		<text>Prone Key</text>
 	</string>
-	<string id="ui_mcm_mcm_holdortoggle_stance_pronekey_desc">
+	<string id="ui_mcm_holdortoggle_stance_pronekey_desc">
 		<text>The key to activate prone mode (crouch + walk)</text>
 	</string>
 
 	<!-- unbind_pronekey -->
-	<string id="ui_mcm_mcm_holdortoggle_stance_unbind_pronekey">
+	<string id="ui_mcm_holdortoggle_stance_unbind_pronekey">
 		<text>Unbind Prone Key</text>
 	</string>
 
@@ -347,90 +347,90 @@
 	<!-- ========================================== -->
 
 	<!-- Radio Content for hot_crouch -->
-	<string id="mcm_holdortoggle_main_hot_crouch_lst_Hold">
+	<string id="holdortoggle_main_hot_crouch_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_crouch_lst_Toggle">
+	<string id="holdortoggle_main_hot_crouch_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_crouch_lst_Hold+Toggle">
+	<string id="holdortoggle_main_hot_crouch_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- Radio Content for hot_walk -->
-	<string id="mcm_holdortoggle_main_hot_walk_lst_Hold">
+	<string id="holdortoggle_main_hot_walk_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_walk_lst_Toggle">
+	<string id="holdortoggle_main_hot_walk_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_walk_lst_Hold+Toggle">
+	<string id="holdortoggle_main_hot_walk_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- Radio Content for hot_sprint -->
-	<string id="mcm_holdortoggle_main_hot_sprint_lst_Hold">
+	<string id="holdortoggle_main_hot_sprint_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_sprint_lst_Toggle">
+	<string id="holdortoggle_main_hot_sprint_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_sprint_lst_Hold+Toggle">
+	<string id="holdortoggle_main_hot_sprint_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- Radio Content for hot_lean -->
-	<string id="mcm_holdortoggle_main_hot_lean_lst_Hold">
+	<string id="holdortoggle_main_hot_lean_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_lean_lst_Toggle">
+	<string id="holdortoggle_main_hot_lean_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_lean_lst_Hold+Toggle">
+	<string id="holdortoggle_main_hot_lean_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- Radio Content for hot_aim -->
-	<string id="mcm_holdortoggle_main_hot_aim_lst_Hold">
+	<string id="holdortoggle_main_hot_aim_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_aim_lst_Toggle">
+	<string id="holdortoggle_main_hot_aim_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_main_hot_aim_lst_Hold+Toggle">
+	<string id="holdortoggle_main_hot_aim_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- Radio Content for hot_prone -->
-	<string id="mcm_holdortoggle_stance_hot_prone_lst_Disabled">
+	<string id="holdortoggle_stance_hot_prone_lst_Disabled">
 		<text>Disabled</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_hot_prone_lst_Hold">
+	<string id="holdortoggle_stance_hot_prone_lst_Hold">
 		<text>Hold</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_hot_prone_lst_Toggle">
+	<string id="holdortoggle_stance_hot_prone_lst_Toggle">
 		<text>Toggle</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_hot_prone_lst_Hold+Toggle">
+	<string id="holdortoggle_stance_hot_prone_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
 	</string>
 
 	<!-- List Content for stance_system -->
-	<string id="mcm_holdortoggle_stance_stance_system_lst_Vanilla Prone">
+	<string id="holdortoggle_stance_stance_system_lst_Vanilla Prone">
 		<text>Vanilla Prone</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_stance_system_lst_Fluid Stance">
+	<string id="holdortoggle_stance_stance_system_lst_Fluid Stance">
 		<text>Fluid Stance (Dedicated prone key)</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_stance_system_lst_Progressive (Hold to Prone)">
+	<string id="holdortoggle_stance_stance_system_lst_Progressive (Hold to Prone)">
 		<text>Progressive (Hold Crouch to Prone)</text>
 	</string>
 
 	<!-- List Content for prog_hold_time_mode -->
-	<string id="mcm_holdortoggle_stance_prog_hold_time_mode_lst_Use MCM Hold Time">
+	<string id="holdortoggle_stance_prog_hold_time_mode_lst_Use MCM Hold Time">
 		<text>Use MCM Hold Time</text>
 	</string>
-	<string id="mcm_holdortoggle_stance_prog_hold_time_mode_lst_Custom Delay">
+	<string id="holdortoggle_stance_prog_hold_time_mode_lst_Custom Delay">
 		<text>Custom Delay</text>
 	</string>
 
