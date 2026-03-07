@@ -27,6 +27,9 @@ end
 
 function on_key_press(key)
     if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
+        -- Skip when fluid_aim is pressing zoom internally (equip scheduling) to prevent
+        -- it from cancelling the tap-clear timer and causing aim to carry over to new weapons
+        if _G.fluid_aim_internal_press then return end
         utils.debug_log("[AIM] key_press: hot_aim=" .. tostring(hot_aim) .. " is_zoomed=" .. tostring(axr_main.weapon_is_zoomed))
 
         -- Pump-action reload interrupt: If in reload state, signal to wait for shell load then aim

@@ -209,7 +209,9 @@ local function fluid_aim_delay_aim_func()
     local active = should_aim_be_active()
     debug_log("[FLUID_AIM] delay_aim: aim=" .. tostring(fluid_aim_aim) .. " active=" .. tostring(active) .. " zoomed=" .. tostring(axr_main.weapon_is_zoomed))
     if fluid_aim_aim and active then
+        _G.fluid_aim_internal_press = true
         level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+        _G.fluid_aim_internal_press = nil
         debug_log("[FLUID_AIM] delay_aim: zoom pressed")
     end
     return true
