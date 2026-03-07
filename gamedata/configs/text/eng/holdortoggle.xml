@@ -283,6 +283,66 @@
 	</string>
 
 	<!-- ========================================== -->
+	<!-- RAPID FIRE TAB OPTIONS -->
+	<!-- ========================================== -->
+
+	<!-- rapid_fire -->
+	<string id="ui_mcm_rapid_fire_hint">
+		<text>Rapid Fire</text>
+	</string>
+	<string id="ui_mcm_rapid_fire_hint_desc">
+		<text>Skips the weapon raise animation when drawing from empty hands or switching weapons. Hold fire before the weapon is ready and it will shoot as soon as the delay expires. Works the same for ADS - hold the aim button, or simply tap aim in Toggle or Hold+Toggle mode. Also enables canceling pump-action reload by holding fire or activating ADS mid-reload.</text>
+	</string>
+
+	<!-- rapid_aim_pistol_delay -->
+	<string id="ui_mcm_rapid_aim_pistol_delay_hint">
+		<text>Pistol Ready Delay</text>
+	</string>
+	<string id="ui_mcm_rapid_aim_pistol_delay_hint_desc">
+		<text>Time (in seconds) after drawing a pistol before the queued fire or ADS is triggered. Lower values skip more of the raise animation; increase if shots fire before the animation don't look right.</text>
+	</string>
+
+	<!-- rapid_aim_other_delay -->
+	<string id="ui_mcm_rapid_aim_other_delay_hint">
+		<text>Other Weapons Ready Delay</text>
+	</string>
+	<string id="ui_mcm_rapid_aim_other_delay_hint_desc">
+		<text>Time (in seconds) after drawing a rifle, shotgun, or other weapon before the queued fire or ADS is triggered. Lower values skip more of the raise animation; increase if shots fire before the animation don't look right.</text>
+	</string>
+
+	<!-- mag_reload_cancel -->
+	<string id="ui_mcm_mag_reload_cancel_hint">
+		<text>Magazine Reload Cancel</text>
+	</string>
+	<string id="ui_mcm_mag_reload_cancel_hint_desc">
+		<text>Cancels the post-reload recovery animation as soon as the ammo counter updates after a magazine reload. No need to time a press - just hold fire or have ADS active beforehand and the cancel triggers automatically.</text>
+	</string>
+
+	<!-- mag_reload_cancel_delay -->
+	<string id="ui_mcm_mag_reload_cancel_delay_hint">
+		<text>Magazine Cancel Window</text>
+	</string>
+	<string id="ui_mcm_mag_reload_cancel_delay_hint_desc">
+		<text>How long (in seconds) after the ammo counter updates that a held fire button or active ADS will trigger the cancel. Increase if animations don't look right.</text>
+	</string>
+
+	<!-- pump_reload_cancel -->
+	<string id="ui_mcm_pump_reload_cancel_hint">
+		<text>Pump-Action Reload Cancel</text>
+	</string>
+	<string id="ui_mcm_pump_reload_cancel_hint_desc">
+		<text>Cancels the post-reload recovery animation as soon as the ammo counter updates after the last shell is loaded. No need to time a press — just hold fire or have ADS active beforehand and the cancel triggers automatically.</text>
+	</string>
+
+	<!-- pump_reload_cancel_delay -->
+	<string id="ui_mcm_pump_reload_cancel_delay_hint">
+		<text>Pump Cancel Window</text>
+	</string>
+	<string id="ui_mcm_pump_reload_cancel_delay_hint_desc">
+		<text>How long (in seconds) after the ammo counter updates that a held fire button or active ADS will trigger the cancel. Increase if animation don't look right.</text>
+	</string>
+
+	<!-- ========================================== -->
 	<!-- LIST/RADIO CONTENT -->
 	<!-- ========================================== -->
 
