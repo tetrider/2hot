@@ -106,7 +106,7 @@ function on_mcm_load()
                 {id = "title_keybind", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_keybind", size = {512, 50}, spacing = 20},
                 {id = "hot_prone", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_prone_hint", content = {{0,"Disabled"}, {1,"Hold"}, {2,"Toggle"}, {3,"Hold+Toggle"}}},
                 {id = "pronekey", type = "key_bind", val = 2, def = DIK_keys.DIK_Z},
-                {id = "unbind_pronekey", type = "button", functor_ui = {unbind_pronekey_func}},
+                -- {id = "unbind_pronekey", type = "button", functor_ui = {unbind_pronekey_func}},
 
                 -- Progressive Stance Settings
                 {id = "title_progressive", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_progressive", size = {512, 50}, spacing = 20},
