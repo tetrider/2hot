@@ -82,8 +82,6 @@ function on_mcm_load()
                 {id = "prevent_weapon_detector", type = "check", val = 1, def = false, hint = "prevent_weapon_with_detector_hint"},
                 {id = "qaw_ignore_modifiers", type = "check", val = 1, def = false, hint = "qaw_ignore_modifiers_hint"},
                 {id = "qaw_close_with_reload", type = "check", val = 1, def = false, hint = "qaw_close_with_reload_hint"},
-                {id = "stance_vignette", type = "check", val = 1, def = false, hint = "stance_vignette_hint"},
-                {id = "vignette_intensity", type = "track", val = 2, def = 1.0, min = 0.1, max = 1.0, step = 0.1, hint = "vignette_intensity_hint"},
                 {id = "rapid_aim", type = "check", val = 1, def = false, hint = "rapid_aim_hint"},
                 {id = "rapid_aim_pistol_delay", type = "track", val = 2, def = 0.1, min = 0.0, max = 3, step = 0.05, hint = "rapid_aim_pistol_delay_hint"},
                 {id = "rapid_aim_other_delay", type = "track", val = 2, def = 0.3, min = 0.0, max = 3, step = 0.05, hint = "rapid_aim_other_delay_hint"},
@@ -91,6 +89,11 @@ function on_mcm_load()
                 {id = "mag_reload_cancel_delay", type = "track", val = 2, def = 0.2, min = 0.0, max = 1.0, step = 0.05, hint = "mag_reload_cancel_delay_hint"},
                 {id = "pump_reload_cancel", type = "check", val = 1, def = false, hint = "pump_reload_cancel_hint"},
                 {id = "pump_reload_cancel_delay", type = "track", val = 2, def = 0.1, min = 0.0, max = 1.0, step = 0.05, hint = "pump_reload_cancel_delay_hint"},
+            }},
+            -- Stance Vignette Tab
+            {id = "vignette", sh = true, text = "ui_mcm_holdortoggle_vignette", gr = {
+                {id = "stance_vignette", type = "check", val = 1, def = false, hint = "stance_vignette_hint"},
+                {id = "vignette_intensity", type = "track", val = 2, def = 0.6, min = 0.1, max = 1.0, step = 0.1, hint = "vignette_intensity_hint"},
             }},
             -- Stance System Tab
             {id = "stance", sh = true, text = "ui_mcm_holdortoggle_stance", gr = {

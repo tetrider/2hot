@@ -16,8 +16,8 @@ local vignette_available = nil  -- nil = not tested, true = works, false = XML n
 
 function update_options()
     if ui_mcm then
-        stance_vignette_enabled = ui_mcm.get("mcm/holdortoggle/qol/stance_vignette")
-        vignette_intensity = ui_mcm.get("mcm/holdortoggle/qol/vignette_intensity") or 1.0
+        stance_vignette_enabled = ui_mcm.get("mcm/holdortoggle/vignette/stance_vignette")
+        vignette_intensity = ui_mcm.get("mcm/holdortoggle/vignette/vignette_intensity") or 1.0
         utils.debug_log("[STANCE_VIGNETTE] update_options - enabled: " .. tostring(stance_vignette_enabled) .. ", intensity: " .. tostring(vignette_intensity))
     end
 
