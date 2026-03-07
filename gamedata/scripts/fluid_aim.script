@@ -127,6 +127,9 @@ local function is_weapon_pump_action(wpn)
     return wpn_type == "pump_action"
 end
 
+-- Aim mode cache
+local hot_aim_mode = 0  -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+
 -- Rapid fire settings
 local rapid_fire_enabled = false
 local rapid_aim_pistol_delay = 0.1
@@ -152,6 +155,7 @@ local fluid_aim_button_released_after_aim = false  -- tracks if aim button relea
 -- Update settings from MCM
 function fluid_aim_update_settings()
     if ui_mcm then
+        hot_aim_mode = ui_mcm.get("mcm/holdortoggle/main/hot_aim") or 0
         rapid_fire_enabled = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_fire")
         rapid_aim_pistol_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_aim_pistol_delay")
         rapid_aim_other_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_aim_other_delay")
@@ -171,29 +175,25 @@ _G.fluid_aim_pump_reload_aim_ready = pump_reload_aim_ready
 
 -- Compatibility: check if holdortoggle is managing aim
 local function is_holdortoggle_managing_aim()
-    if not ui_mcm then return false end
-    local hot_aim = ui_mcm.get("mcm/holdortoggle/main/hot_aim")
-    return hot_aim == 0 or hot_aim == 2
+    return hot_aim_mode == 0 or hot_aim_mode == 2
 end
 
 local function should_aim_be_active()
     if not holdortoggle_state then return true end
     if not is_holdortoggle_managing_aim() then return true end
-    
-    local hot_aim = ui_mcm.get("mcm/holdortoggle/main/hot_aim")
-    
-    if hot_aim == 0 then
+
+    if hot_aim_mode == 0 then
         return holdortoggle_state.holding_aim or holdortoggle_state.aim_key_down
     end
-    
-    if hot_aim == 2 then
+
+    if hot_aim_mode == 2 then
         -- In hold+toggle mode: aim is active if:
         -- 1) User has flag set (aim_key_down or holding_aim), OR
         -- 2) Weapon is already zoomed (stay zoomed even during brief flag transitions)
         -- This prevents deactivation when pressing while zoomed causes temporary flag clearing
         return holdortoggle_state.holding_aim or holdortoggle_state.aim_key_down or axr_main.weapon_is_zoomed
     end
-    
+
     return true
 end
 
@@ -244,12 +244,11 @@ local function actor_on_update()
 
     -- In Hold+Toggle mode, use our flag instead of key_state for aim
     if is_holdortoggle_managing_aim() and holdortoggle_state then
-        local hot_aim = ui_mcm.get("mcm/holdortoggle/main/hot_aim")
         -- Hold mode (0): use aim_key_down
         -- Hold+Toggle mode (2): use aim_key_down only if NOT holding_aim (tap) OR if holding_aim is true (hold)
-        if hot_aim == 0 then
+        if hot_aim_mode == 0 then
             fluid_aim_aim = holdortoggle_state.aim_key_down
-        elseif hot_aim == 2 then
+        elseif hot_aim_mode == 2 then
             -- Aim if tapped (aim_key_down before threshold) OR if holding past threshold (holding_aim)
             fluid_aim_aim = holdortoggle_state.holding_aim or holdortoggle_state.aim_key_down
         end
