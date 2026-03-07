@@ -175,7 +175,7 @@ _G.fluid_aim_pump_reload_aim_ready = pump_reload_aim_ready
 
 -- Compatibility: check if holdortoggle is managing aim
 local function is_holdortoggle_managing_aim()
-    return hot_aim_mode == 0 or hot_aim_mode == 2
+    return hot_aim_mode == 0 or hot_aim_mode == 1 or hot_aim_mode == 2
 end
 
 local function should_aim_be_active()
@@ -184,6 +184,12 @@ local function should_aim_be_active()
 
     if hot_aim_mode == 0 then
         return holdortoggle_state.holding_aim or holdortoggle_state.aim_key_down
+    end
+
+    if hot_aim_mode == 1 then
+        -- In toggle mode: aim is active when aim_key_down is set
+        -- The flag persists until the next press toggles it off
+        return holdortoggle_state.aim_key_down
     end
 
     if hot_aim_mode == 2 then
@@ -242,11 +248,14 @@ local function actor_on_update()
     -- Check if fire or aim is pressed
     fluid_aim_fire = key_state(bind_to_dik(key_bindings.kWPN_FIRE)) ~= 0
 
-    -- In Hold+Toggle mode, use our flag instead of key_state for aim
+    -- In Hold/Toggle/Hold+Toggle modes, use our flag instead of key_state for aim
     if is_holdortoggle_managing_aim() and holdortoggle_state then
         -- Hold mode (0): use aim_key_down
+        -- Toggle mode (1): use aim_key_down (cleared on key release)
         -- Hold+Toggle mode (2): use aim_key_down only if NOT holding_aim (tap) OR if holding_aim is true (hold)
         if hot_aim_mode == 0 then
+            fluid_aim_aim = holdortoggle_state.aim_key_down
+        elseif hot_aim_mode == 1 then
             fluid_aim_aim = holdortoggle_state.aim_key_down
         elseif hot_aim_mode == 2 then
             -- Aim if tapped (aim_key_down before threshold) OR if holding past threshold (holding_aim)
