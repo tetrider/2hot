@@ -12,6 +12,9 @@
 	<string id="ui_mcm_holdortoggle_qol">
 		<text>QoL Features</text>
 	</string>
+	<string id="ui_mcm_holdortoggle_autowalk">
+		<text>Autowalk</text>
+	</string>
 	<string id="ui_mcm_holdortoggle_stance">
 		<text>Stance System</text>
 	</string>

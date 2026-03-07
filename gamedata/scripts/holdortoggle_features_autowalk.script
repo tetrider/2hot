@@ -11,9 +11,9 @@ local mode = 2      -- Default to hold
 
 function update_options()
     if ui_mcm then
-        autowalkey = ui_mcm.get("mcm/holdortoggle/main/autowalkey")
-        modifier = ui_mcm.get("mcm/holdortoggle/main/modifier")
-        mode = ui_mcm.get("mcm/holdortoggle/main/mode")
+        autowalkey = ui_mcm.get("mcm/holdortoggle/autowalk/autowalkey")
+        modifier = ui_mcm.get("mcm/holdortoggle/autowalk/modifier")
+        mode = ui_mcm.get("mcm/holdortoggle/autowalk/mode")
     end
 end
 

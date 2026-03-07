@@ -87,14 +87,14 @@ Priority: stance system > inventory > lean > aim > movement_base
 
 - **Alternative Sprint Cancel** - Sprint only cancels actions when moving forward, preserves body position (LSHIFT can be used for modifiers)
 - **Opposite Lean Cancel** - In Toggle/Hold+Toggle mode, opposite lean key cancels current lean. In Hold+Toggle mode, held lean allows switching instead.
-- **Inventory on Release** - Quick tap opens inventory, hold for other actions (e.g., Quick Action Wheel)
+- **Inventory on Release** - Quick tap opens inventory, hold for other actions (e.g., Quick Action Wheel). Also closes QAW if opened
 - **Block Crouch in Inventory** - Prevents crouching while holding LCTRL in inventory. Useful to avoid accidental crouching when viewing full item stats.
 - **PDA mode** - On Release: Tap to toggle PDA. Hold to Zoom: Hold opens PDA with zoom. On Release + Zoom: Tap to open with auto-zoom.
 - **Restore Hands After PDA** - Automatically restore your weapon and detector when closing the PDA with the PDA keybind (or Escape). Requires PDA mode. If disabled, does not interfere with PDA close
 - **Prevent Weapon with Detector** - When switching from two-handed weapon/item to detector, go to empty hands first.
 - **QAW: Ignore Modifiers on Hold** - Long-press QAW key works even while holding modifiers (allows QAW while sprinting).
-- **QAW: Close with Reload Key** - Reload key (R) closes QAW when open. Useful if you bind tap R to reload and hold R to ammo selector in Key Wrapper.
-- **Stance Vignette** - Darkens screen edges based on stance. Standing: no effect. Crouching: light vignette. Prone: stronger vignette. Smooth transitions between states. Requires DXML. 
+- **QAW: Close with Reload Key** - Reload key closes QAW when open. Useful if you bind tap R to reload and hold R to ammo selector in Key Wrapper. Or if you use One Key Weapon Control addon
+- **Stance Vignette** - Darkens screen edges based on stance. Standing: subtle effect. Crouching: light vignette. Prone: stronger vignette. Smooth transitions between states. Requires DXML. 
 
 ## Adding New Features
 
