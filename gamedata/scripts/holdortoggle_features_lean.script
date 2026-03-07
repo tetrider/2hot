@@ -13,8 +13,8 @@ local toggling_lean_programmatically = false
 
 function update_options()
     if ui_mcm then
-        hot_lean = ui_mcm.get("mcm/holdortoggle/main/hot_lean")
-        opposite_lean_cancel = ui_mcm.get("mcm/holdortoggle/qol/opposite_lean_cancel")
+        hot_lean = ui_mcm.get("holdortoggle/main/hot_lean")
+        opposite_lean_cancel = ui_mcm.get("holdortoggle/qol/opposite_lean_cancel")
     end
 end
 

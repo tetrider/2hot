@@ -41,7 +41,7 @@ function get_hold_time()
         return 0.2  -- Default 200ms
     end
 
-    local mode = ui_mcm.get("mcm/holdortoggle/stance/prog_hold_time_mode") or 0
+    local mode = ui_mcm.get("holdortoggle/stance/prog_hold_time_mode") or 0
 
     if mode == 0 then
         -- Use MCM hold time (presstime × dtaptime2)
@@ -52,7 +52,7 @@ function get_hold_time()
         return hold_time_ms / 1000.0
     else
         -- Use custom delay (convert to seconds)
-        local custom_ms = ui_mcm.get("mcm/holdortoggle/stance/prog_hold_time_custom") or 200
+        local custom_ms = ui_mcm.get("holdortoggle/stance/prog_hold_time_custom") or 200
         return custom_ms / 1000.0
     end
 end
@@ -449,7 +449,7 @@ function on_key_press(key)
             local hold_time = get_hold_time()
             CreateTimeEvent("progressive_stance", "check_hold", hold_time, function()
                 -- Check if sprint is being blocked - if so, don't transition to prone
-                local hot_sprint_cancel = ui_mcm and ui_mcm.get("mcm/holdortoggle/qol/hot_sprint_cancel") or false
+                local hot_sprint_cancel = ui_mcm and ui_mcm.get("holdortoggle/qol/hot_sprint_cancel") or false
                 local sprint_blocking_active = (state.holding_sprint or state.sprint_key_down) and hot_sprint_cancel and not IsMoveState("mcFwd")
 
                 utils.debug_log("[PROGRESSIVE_STANCE] Timer fired: waiting=" .. tostring(waiting_for_crouch_decision) .. ", holding=" .. tostring(state.holding_crouch) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", sprint_blocking=" .. tostring(sprint_blocking_active))
@@ -493,7 +493,7 @@ function on_key_press(key)
         local hold_time = get_hold_time()
         CreateTimeEvent("progressive_stance", "check_prone_hold", hold_time, function()
             -- Check if sprint is being blocked - if so, don't transition to prone
-            local hot_sprint_cancel = ui_mcm and ui_mcm.get("mcm/holdortoggle/qol/hot_sprint_cancel") or false
+            local hot_sprint_cancel = ui_mcm and ui_mcm.get("holdortoggle/qol/hot_sprint_cancel") or false
             local sprint_blocking_active = (state.holding_sprint or state.sprint_key_down) and hot_sprint_cancel and not IsMoveState("mcFwd")
 
             utils.debug_log("[PROGRESSIVE_STANCE] Prone timer fired from standing: crouch_hold_started=" .. tostring(crouch_hold_started) .. ", holding_crouch=" .. tostring(state.holding_crouch) .. ", prone_active=" .. tostring(prone_active) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", sprint_blocking=" .. tostring(sprint_blocking_active))

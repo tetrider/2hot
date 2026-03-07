@@ -14,8 +14,8 @@ local aim_toggled_off_by_press = false
 
 function update_options()
     if ui_mcm then
-        hot_aim = ui_mcm.get("mcm/holdortoggle/main/hot_aim")
-        hot_sprint = ui_mcm.get("mcm/holdortoggle/main/hot_sprint")
+        hot_aim = ui_mcm.get("holdortoggle/main/hot_aim")
+        hot_sprint = ui_mcm.get("holdortoggle/main/hot_sprint")
     end
     -- config.on_option_change forces wpn_aim_toggle on, so sync our tracking var
     aim_toggle_disabled = false

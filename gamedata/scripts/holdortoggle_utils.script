@@ -8,7 +8,7 @@ local debug_log_path = "holdortoggle_debug.log"
 
 function update_debug_logging()
     if ui_mcm then
-        debug_logging_enabled = ui_mcm.get("mcm/holdortoggle/main/debug_logging")
+        debug_logging_enabled = ui_mcm.get("holdortoggle/main/debug_logging")
 
         -- Open debug log file if logging is enabled
         if debug_logging_enabled and not debug_log_file then

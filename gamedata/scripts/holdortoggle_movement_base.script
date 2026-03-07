@@ -24,10 +24,10 @@ end
 
 function update_options()
     if ui_mcm then
-        hot_crouch = ui_mcm.get("mcm/holdortoggle/main/hot_crouch")
-        hot_walk = ui_mcm.get("mcm/holdortoggle/main/hot_walk")
-        hot_sprint = ui_mcm.get("mcm/holdortoggle/main/hot_sprint")
-        hot_sprint_cancel = ui_mcm.get("mcm/holdortoggle/qol/hot_sprint_cancel")
+        hot_crouch = ui_mcm.get("holdortoggle/main/hot_crouch")
+        hot_walk = ui_mcm.get("holdortoggle/main/hot_walk")
+        hot_sprint = ui_mcm.get("holdortoggle/main/hot_sprint")
+        hot_sprint_cancel = ui_mcm.get("holdortoggle/qol/hot_sprint_cancel")
     end
 end
 

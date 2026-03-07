@@ -28,8 +28,8 @@ end
 
 function update_options()
     if ui_mcm then
-        pda_mode = ui_mcm.get("mcm/holdortoggle/qol/pda_mode") or 0
-        restore_hands_after_pda = ui_mcm.get("mcm/holdortoggle/qol/restore_hands_after_pda")
+        pda_mode = ui_mcm.get("holdortoggle/qol/pda_mode") or 0
+        restore_hands_after_pda = ui_mcm.get("holdortoggle/qol/restore_hands_after_pda")
     end
 end
 

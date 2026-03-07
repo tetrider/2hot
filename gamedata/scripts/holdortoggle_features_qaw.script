@@ -26,8 +26,8 @@ end
 function update_options()
     if not ui_mcm then return end
 
-    qaw_ignore_modifiers = ui_mcm.get("mcm/holdortoggle/qol/qaw_ignore_modifiers")
-    qaw_close_with_reload = ui_mcm.get("mcm/holdortoggle/qol/qaw_close_with_reload")
+    qaw_ignore_modifiers = ui_mcm.get("holdortoggle/qol/qaw_ignore_modifiers")
+    qaw_close_with_reload = ui_mcm.get("holdortoggle/qol/qaw_close_with_reload")
 
     utils.debug_log("[QAW] update_options called - ignore_modifiers: " .. tostring(qaw_ignore_modifiers) .. ", close_with_reload: " .. tostring(qaw_close_with_reload))
 

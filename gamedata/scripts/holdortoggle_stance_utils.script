@@ -58,7 +58,7 @@ end
 -- Check if prone should be canceled for sprint
 -- Returns: boolean - true if prone should be canceled, false otherwise
 function should_cancel_prone_for_sprint()
-    local hot_sprint_cancel = ui_mcm and ui_mcm.get("mcm/holdortoggle/qol/hot_sprint_cancel") or false
+    local hot_sprint_cancel = ui_mcm and ui_mcm.get("holdortoggle/qol/hot_sprint_cancel") or false
     local is_moving_forward = IsMoveState("mcFwd")
     local should_cancel = not hot_sprint_cancel or is_moving_forward
 

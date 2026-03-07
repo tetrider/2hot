@@ -155,14 +155,14 @@ local fluid_aim_button_released_after_aim = false  -- tracks if aim button relea
 -- Update settings from MCM
 function fluid_aim_update_settings()
     if ui_mcm then
-        hot_aim_mode = ui_mcm.get("mcm/holdortoggle/main/hot_aim") or 0
-        rapid_fire_enabled = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_fire")
-        rapid_aim_pistol_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_aim_pistol_delay")
-        rapid_aim_other_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/rapid_aim_other_delay")
-        mag_reload_cancel_enabled = ui_mcm.get("mcm/holdortoggle/rapid_fire/mag_reload_cancel")
-        mag_reload_cancel_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/mag_reload_cancel_delay")
-        pump_reload_cancel_enabled = ui_mcm.get("mcm/holdortoggle/rapid_fire/pump_reload_cancel")
-        pump_reload_cancel_delay = ui_mcm.get("mcm/holdortoggle/rapid_fire/pump_reload_cancel_delay")
+        hot_aim_mode = ui_mcm.get("holdortoggle/main/hot_aim") or 0
+        rapid_fire_enabled = ui_mcm.get("holdortoggle/rapid_fire/rapid_fire")
+        rapid_aim_pistol_delay = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_pistol_delay")
+        rapid_aim_other_delay = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_other_delay")
+        mag_reload_cancel_enabled = ui_mcm.get("holdortoggle/rapid_fire/mag_reload_cancel")
+        mag_reload_cancel_delay = ui_mcm.get("holdortoggle/rapid_fire/mag_reload_cancel_delay")
+        pump_reload_cancel_enabled = ui_mcm.get("holdortoggle/rapid_fire/pump_reload_cancel")
+        pump_reload_cancel_delay = ui_mcm.get("holdortoggle/rapid_fire/pump_reload_cancel_delay")
     end
 end
 

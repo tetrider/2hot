@@ -13,8 +13,8 @@ local qaw_closed_this_press = false
 
 function update_options()
     if ui_mcm then
-        hot_inventory = ui_mcm.get("mcm/holdortoggle/qol/hot_inventory")
-        block_crouch_in_inventory = ui_mcm.get("mcm/holdortoggle/qol/block_crouch_in_inventory")
+        hot_inventory = ui_mcm.get("holdortoggle/qol/hot_inventory")
+        block_crouch_in_inventory = ui_mcm.get("holdortoggle/qol/block_crouch_in_inventory")
     end
 end
 

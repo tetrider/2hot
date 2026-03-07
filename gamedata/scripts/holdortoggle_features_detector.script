@@ -11,7 +11,7 @@ local simulating_detector = false
 
 function update_options()
     if ui_mcm then
-        prevent_weapon_detector = ui_mcm.get("mcm/holdortoggle/qol/prevent_weapon_detector")
+        prevent_weapon_detector = ui_mcm.get("holdortoggle/qol/prevent_weapon_detector")
     end
 end
 

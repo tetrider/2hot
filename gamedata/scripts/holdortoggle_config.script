@@ -39,10 +39,10 @@ end
 function unbind_pronekey_func()
     utils.debug_log("[HOLDORTOGGLE CONFIG] unbind_pronekey_func called")
     if ui_mcm then
-        local old_value = ui_mcm.get("mcm/holdortoggle/stance/pronekey")
+        local old_value = ui_mcm.get("holdortoggle/stance/pronekey")
         utils.debug_log("[HOLDORTOGGLE CONFIG] Old pronekey value: " .. tostring(old_value))
-        ui_mcm.set("mcm/holdortoggle/stance/pronekey", -1)
-        local new_value = ui_mcm.get("mcm/holdortoggle/stance/pronekey")
+        ui_mcm.set("holdortoggle/stance/pronekey", -1)
+        local new_value = ui_mcm.get("holdortoggle/stance/pronekey")
         utils.debug_log("[HOLDORTOGGLE CONFIG] New pronekey value: " .. tostring(new_value))
     else
         utils.debug_log("[HOLDORTOGGLE CONFIG] ERROR: ui_mcm not available")
@@ -149,13 +149,13 @@ function on_option_change()
     utils.debug_log("[CONFIG] on_option_change called")
 
     -- Load all options
-    local hot_crouch = ui_mcm.get("mcm/holdortoggle/main/hot_crouch") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
-    local hot_walk = ui_mcm.get("mcm/holdortoggle/main/hot_walk") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
-    local hot_sprint = ui_mcm.get("mcm/holdortoggle/main/hot_sprint") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
-    local hot_lean = ui_mcm.get("mcm/holdortoggle/main/hot_lean") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
-    local hot_prone = ui_mcm.get("mcm/holdortoggle/stance/hot_prone") -- 0=Disabled, 1=Hold, 2=Toggle, 3=Hold+Toggle
-    local stance_system = ui_mcm.get("mcm/holdortoggle/stance/stance_system")
-    local pronekey = ui_mcm.get("mcm/holdortoggle/stance/pronekey")
+    local hot_crouch = ui_mcm.get("holdortoggle/main/hot_crouch") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+    local hot_walk = ui_mcm.get("holdortoggle/main/hot_walk") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+    local hot_sprint = ui_mcm.get("holdortoggle/main/hot_sprint") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+    local hot_lean = ui_mcm.get("holdortoggle/main/hot_lean") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+    local hot_prone = ui_mcm.get("holdortoggle/stance/hot_prone") -- 0=Disabled, 1=Hold, 2=Toggle, 3=Hold+Toggle
+    local stance_system = ui_mcm.get("holdortoggle/stance/stance_system")
+    local pronekey = ui_mcm.get("holdortoggle/stance/pronekey")
 
     utils.debug_log("[CONFIG] Loaded MCM values - crouch: " .. tostring(hot_crouch) .. ", walk: " .. tostring(hot_walk) .. ", sprint: " .. tostring(hot_sprint) .. ", lean: " .. tostring(hot_lean) .. ", prone: " .. tostring(hot_prone))
 
