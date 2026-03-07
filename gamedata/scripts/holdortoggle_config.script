@@ -89,7 +89,7 @@ function on_mcm_load()
                 {id = "mag_reload_cancel", type = "check", val = 1, def = false, hint = "mag_reload_cancel_hint"},
                 {id = "mag_reload_cancel_delay", type = "track", val = 2, def = 0.2, min = 0.0, max = 1.0, step = 0.05, hint = "mag_reload_cancel_delay_hint"},
                 {id = "pump_reload_cancel", type = "check", val = 1, def = false, hint = "pump_reload_cancel_hint"},
-                {id = "pump_reload_cancel_delay", type = "track", val = 2, def = 0.1, min = 0.0, max = 1.0, step = 0.05, hint = "pump_reload_cancel_delay_hint"},
+                {id = "pump_reload_cancel_delay", type = "track", val = 2, def = 0.2, min = 0.0, max = 1.0, step = 0.05, hint = "pump_reload_cancel_delay_hint"},
             }},
             -- Stance Vignette Tab
             {id = "vignette", sh = true, text = "ui_mcm_holdortoggle_vignette", gr = {
