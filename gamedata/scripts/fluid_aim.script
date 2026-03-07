@@ -880,7 +880,13 @@ local function actor_on_update()
                     -- key_state covers Hold mode: RMB held throughout jam+unjam, but on_key_press is engine-consumed
                     -- so holding_aim is never set and fluid_aim_aim stays false. key_state polls hardware directly.
                     local aim_key_held = key_state(bind_to_dik(key_bindings.kWPN_ZOOM)) ~= 0
-                    if fluid_aim_fire then
+                    if state == 5 and fluid_aim_fire then
+                        -- Weapon is ALREADY in fire state from the player's physical key press — the fire is happening
+                        -- naturally. If we also queue a fire here, it causes a duplicate shot (two fires from one hold).
+                        -- Just clear the unjam flag; the in-progress fire is the correct response.
+                        debug_log("[UNJAM_FIRE] Already firing (state=5): clearing unjam flag without queuing (fire already in progress)")
+                        unjam_fire_ready[wpn_id] = nil
+                    elseif fluid_aim_fire then
                         debug_log("[UNJAM_FIRE] Fire held after unjam ready: wpn_id=" .. tostring(wpn_id) .. " queuing fire immediately")
                         -- Clear jam table: "Fire blocked" detection may have re-set it this frame
                         -- since the weapon stays in state 0 during unjam recovery (arti_jamming already cleared it)
