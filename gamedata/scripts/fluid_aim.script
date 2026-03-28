@@ -536,7 +536,11 @@ local function actor_on_update()
             if (actor_menu.last_mode == 0) and (pda.dialog_closed == true) and (not Check_UI()) and (not db.actor:has_info("ui_pda")) then
                 if fluid_aim_fire and not (state == 5) and not fluid_aim_reset_fire_on_load then
                     level.press_action(bind_to_dik(key_bindings.kWPN_FIRE))
-                elseif fluid_aim_aim and not (state == 6) then
+                elseif not (state == 6) and (key_state(bind_to_dik(key_bindings.kWPN_ZOOM)) ~= 0) then
+                    -- Use key_state (physical key poll) instead of fluid_aim_aim (toggle state).
+                    -- fluid_aim_aim stays true in toggle mode even after switching to melee, causing
+                    -- endless zoom/alt-attack loops since the attack animation never enters state 6.
+                    -- key_state only returns non-zero when the button is physically held right now.
                     level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
                 end
             end
