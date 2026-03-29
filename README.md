@@ -6,17 +6,17 @@ A set of engine workarounds — my attempt to make Anomaly feel more comfortable
 
 ## Stance systems
 
-- **Progressive (default)** — tap crouch for crouch, hold crouch for prone. Most natural feel. Prone key works as backup.
+- **Progressive** — tap crouch for crouch, hold crouch for prone. Most natural feel. Prone key works as backup.
 - **Fluid Stance** — crouch and walk keys switch between modes cleanly: pressing crouch while walking switches to crouch rather than standing up. No accidental prone from crouch+walk — use the prone key.
 - **Vanilla Prone** — adds only a dedicated prone key. Crouch and walk behave exactly like vanilla STALKER.
 
 ## Rapid Fire *(experimental)*
 
-Holding fire or ADS skips the weapon raise animation so you can shoot or aim almost instantly. If you press before the weapon is ready, the game no longer ignores it — the action executes as soon as the weapon allows. Extends Fluid Aim by Skieppy with additional behaviors and Hold or Toggle compatibility.
+Extends Fluid Aim by Skieppy with additional behaviors and Hold or Toggle compatibility.
 
 - **Rapid Fire** — hold fire to skip the raise animation and shoot almost instantly. Works with single, burst, and auto fire modes. If you press fire too early, the intent is queued and executes as soon as the weapon is ready. Configurable delay before the raise animation is cancelled.
 - **ADS** — same behavior: holding ADS skips the raise animation. In Toggle or Hold+Toggle mode, tapping ADS early opens a short window so the aim activates as soon as the weapon is ready.
-- **Reload cancel** — optionally interrupt magazine or pump-action reloads by holding fire or ADS mid-reload. Configurable delay for each type.
+- **Reload cancel** — optionally interrupt magazine or pump-action reloads after ammo counter increases by holding fire or trigger ADS. Configurable delay for each type.
 
 ## QoL Features
 
@@ -26,12 +26,12 @@ Holding fire or ADS skips the weapon raise animation so you can shoot or aim alm
 - **Block Crouch in Inventory** — prevents accidental crouching when holding LCTRL to view full item stats in inventory.
 - **PDA Mode** — four options: *Default* (vanilla behavior), *On Release* (tap to toggle PDA), *Hold to Zoom* (hold opens PDA with zoom), *On Release + Zoom* (tap opens with auto-zoom).
 - **Restore Hands After PDA** — automatically restores your weapon and detector when closing the PDA with the PDA key or Escape. Requires PDA Mode to be active.
-- **Prevent Weapon with Detector** — when switching from a two-handed weapon to a detector, goes to empty hands first to avoid animation issues.
+- **Prevent Weapon with Detector** — when switching from a two-handed weapon to a detector.
 - **QAW: Ignore Modifiers on Hold** — long-pressing the QAW key works even while holding modifier keys, so you can open the wheel while sprinting.
 - **QAW: Close with Reload Key** — reload key closes QAW when it's open. Works well with Key Wrapper tap/hold binds or One Key Weapon Control.
 - **Stance Vignette** — screen edges darken based on stance: subtle when standing, light vignette when crouching, stronger when prone. Configurable intensity. Requires DXML.
-- **FDDA Integration** — if FDDA Redone is installed, lean and ADS are automatically canceled when FDDA animations start, and lean keys are added to FDDA's whitelist.
-- **Auto-Walk** — toggle auto-walk using a modifier key combination. Choose activation style (press, double-tap, or hold) and which modifier key to use. Cancels when you manually press forward or back.
+- **FDDA Integration** — Lean is automatically canceled when FDDA animations start.
+- **Auto-Walk** — toggle auto-walk using a modifier key combination 
 
 ## Incompatible mods
 
