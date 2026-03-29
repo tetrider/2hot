@@ -451,8 +451,12 @@ function on_key_release(key)
                     local is_empty_hands = (state.pda_slot_before_open == 0) and not detector_active
 
                     if is_empty_hands then
-                        -- Empty hands: start zoom sequence directly
-                        start_pda_zoom_sequence("On Release + Zoom (empty hands)")
+                        -- Empty hands: defer to next frame via TimeEvent so the key release callback
+                        -- fully completes before we activate slot 8 (matches weapon path behavior)
+                        CreateTimeEvent("pda_zoom_events", "empty_hands_zoom_start", 0, function()
+                            start_pda_zoom_sequence("On Release + Zoom (empty hands)")
+                            return true
+                        end)
                     else
                         -- Weapon/Detector: Switch to empty hands first
                         local item_type = detector_active and "Detector" or "Weapon"
