@@ -1,109 +1,47 @@
-# Hold or Toggle - Modular Architecture
+# 2HOT
 
-## Overview
+Makes crouch, walk, sprint, lean, and ADS work as hold, toggle, or hold+toggle — the way STALKER 2 handles it. Beyond that, adds a reliable prone system, and a collection of quality-of-life fixes.
 
-Modular architecture with pluggable stance systems and isolated features. Easy to extend and maintain.
+A set of engine workarounds — my attempt to make Anomaly feel more comfortable to play. Based on and inspired by Hold or Toggle by duddy.
 
-## Structure
+## Stance systems
 
-```
-holdortoggle/
-├── mcm.script               # Entry point
-├── core.script              # Event dispatcher, loads modules
-├── config.script            # MCM menu, option handling
-├── state.script             # Shared state variables
-├── utils.script             # Utilities (holdfix, is_modifier_key, debug logging)
-├── stance_utils.script      # Stance-related utilities
-├── movement_base.script     # Crouch/walk/sprint logic
-├── features/
-│   ├── lean.script          # Lean hold/toggle with opposite cancel
-│   ├── aim.script           # ADS/Zoom hold/toggle with sprint reactivation
-│   ├── autowalk.script      # Auto-walk feature
-│   ├── inventory.script     # Inventory on release
-│   ├── pda.script           # PDA modes (default/release/hold-to-zoom)
-│   ├── pda_hands.script     # Weapon restoration after PDA close
-│   ├── detector.script      # Detector weapon prevention
-│   ├── qaw.script           # Quick Action Wheel integration
-│   └── stance_vignette.script  # Visual stance feedback
-└── stance_systems/
-    ├── vanilla_prone.script      # Vanilla (crouch+walk=prone)
-    ├── fluid_stance.script       # Smooth transitions, dedicated prone key
-    └── progressive_stance.script # Tap=crouch, Hold=prone
-```
+- **Progressive (default)** — tap crouch for crouch, hold crouch for prone. Most natural feel. Prone key works as backup.
+- **Fluid Stance** — crouch and walk keys switch between modes cleanly: pressing crouch while walking switches to crouch rather than standing up. No accidental prone from crouch+walk — use the prone key.
+- **Vanilla Prone** — adds only a dedicated prone key. Crouch and walk behave exactly like vanilla STALKER.
 
-## Core Files
+## Rapid Fire *(experimental)*
 
-**core.script** - Coordinates all modules, dispatches events (key press/hold/release)
+Holding fire or ADS skips the weapon raise animation so you can shoot or aim almost instantly. If you press before the weapon is ready, the game no longer ignores it — the action executes as soon as the weapon allows. Extends Fluid Aim by Skieppy with additional behaviors and Hold or Toggle compatibility.
 
-**config.script** - MCM menu definition, stance system selection, ensures game toggles enabled
-
-**state.script** - Pure state storage (no logic), prevents circular dependencies
-
-**movement_base.script** - Handles crouch/walk/sprint when stance system inactive
-
-## Features
-
-**lean.script** - Lean hold/toggle with opposite lean cancel (in Hold+Toggle mode, held lean allows switching)
-
-**aim.script** - ADS/Zoom hold/toggle modes (Hold, Toggle, Hold+Toggle). Sprint reactivation: when both ADS and sprint are in Hold or Hold+Toggle mode, releasing ADS while holding sprint automatically resumes sprinting.
-
-**inventory.script** - Opens inventory/PDA on key release (allows holding for other actions)
-
-**autowalk.script** - Auto-walk toggle with press/double-tap/hold modes
-
-**qaw.script** - Quick Action Wheel integration (modifier bypass on hold, close with reload key)
-
-## Stance Systems
-
-**vanilla_prone** - Vanilla behavior: crouch+walk=prone
-
-**fluid_stance** - Smooth transitions, dedicated prone key, no crouch+walk=prone
-
-**progressive_stance** - Tap crouch=immediate crouch, hold crouch=transition to prone
-
-### Stance System Interface
-
-All stance systems implement:
-```lua
-function initialize()
-function shutdown()
-function on_key_press(key) -- Returns true if handled
-function on_key_hold(key)
-function on_key_release(key)
-function is_stance_active()
-function is_handling_crouch()
-function is_handling_walk()
-function set_pronekey(key)
-function set_pronekey_mode(mode) -- 0=Disabled, 1=Hold, 2=Toggle, 3=Hold+Toggle
-```
-
-## Event Flow
-
-Key events → `core` → stance system (if active) → fallback to movement_base/features
-
-Priority: stance system > inventory > lean > aim > movement_base
+- **Rapid Fire** — hold fire to skip the raise animation and shoot almost instantly. Works with single, burst, and auto fire modes. If you press fire too early, the intent is queued and executes as soon as the weapon is ready. Configurable delay before the raise animation is cancelled.
+- **ADS** — same behavior: holding ADS skips the raise animation. In Toggle or Hold+Toggle mode, tapping ADS early opens a short window so the aim activates as soon as the weapon is ready.
+- **Reload cancel** — optionally interrupt magazine or pump-action reloads by holding fire or ADS mid-reload. Configurable delay for each type.
 
 ## QoL Features
 
-- **Alternative Sprint Cancel** - Sprint only cancels actions when moving forward, preserves body position (LSHIFT can be used for modifiers)
-- **Opposite Lean Cancel** - In Toggle/Hold+Toggle mode, opposite lean key cancels current lean. In Hold+Toggle mode, held lean allows switching instead.
-- **Inventory on Release** - Quick tap opens inventory, hold for other actions (e.g., Quick Action Wheel). Also closes QAW if opened
-- **Block Crouch in Inventory** - Prevents crouching while holding LCTRL in inventory. Useful to avoid accidental crouching when viewing full item stats.
-- **PDA mode** - On Release: Tap to toggle PDA. Hold to Zoom: Hold opens PDA with zoom. On Release + Zoom: Tap to open with auto-zoom.
-- **Restore Hands After PDA** - Automatically restore your weapon and detector when closing the PDA with the PDA keybind (or Escape). Requires PDA mode. If disabled, does not interfere with PDA close
-- **Prevent Weapon with Detector** - When switching from two-handed weapon/item to detector, go to empty hands first.
-- **QAW: Ignore Modifiers on Hold** - Long-press QAW key works even while holding modifiers (allows QAW while sprinting).
-- **QAW: Close with Reload Key** - Reload key closes QAW when open. Useful if you bind tap R to reload and hold R to ammo selector in Key Wrapper. Or if you use One Key Weapon Control addon
-- **Stance Vignette** - Darkens screen edges based on stance. Standing: subtle effect. Crouching: light vignette. Prone: stronger vignette. Smooth transitions between states. Requires DXML. 
+- **Alternative Sprint Cancel** — sprint only cancels actions when moving forward. Preserves your stance when stationary, and keeps LSHIFT free for modifier binds.
+- **Opposite Lean Cancel** — in Toggle/Hold+Toggle mode, pressing the opposite lean key cancels current lean instead of switching sides. In Hold+Toggle mode, a held lean switches direction instead of canceling.
+- **Inventory on Release** — tap to open inventory, hold the key for other actions (e.g. Quick Action Wheel).
+- **Block Crouch in Inventory** — prevents accidental crouching when holding LCTRL to view full item stats in inventory.
+- **PDA Mode** — four options: *Default* (vanilla behavior), *On Release* (tap to toggle PDA), *Hold to Zoom* (hold opens PDA with zoom), *On Release + Zoom* (tap opens with auto-zoom).
+- **Restore Hands After PDA** — automatically restores your weapon and detector when closing the PDA with the PDA key or Escape. Requires PDA Mode to be active.
+- **Prevent Weapon with Detector** — when switching from a two-handed weapon to a detector, goes to empty hands first to avoid animation issues.
+- **QAW: Ignore Modifiers on Hold** — long-pressing the QAW key works even while holding modifier keys, so you can open the wheel while sprinting.
+- **QAW: Close with Reload Key** — reload key closes QAW when it's open. Works well with Key Wrapper tap/hold binds or One Key Weapon Control.
+- **Stance Vignette** — screen edges darken based on stance: subtle when standing, light vignette when crouching, stronger when prone. Configurable intensity. Requires DXML.
+- **FDDA Integration** — if FDDA Redone is installed, lean and ADS are automatically canceled when FDDA animations start, and lean keys are added to FDDA's whitelist.
+- **Auto-Walk** — toggle auto-walk using a modifier key combination. Choose activation style (press, double-tap, or hold) and which modifier key to use. Cancels when you manually press forward or back.
 
-## Adding New Features
+## Incompatible mods
 
-1. Create `features/your_feature.script` with standard interface
-2. Add module reference in `core.script`
-3. Call in appropriate event handlers (`on_key_press`, etc.)
-4. Add MCM options in `config.script`
-5. Call `your_feature.update_options()` in `config.on_option_change()`
+Do not use alongside:
 
-## Performance
+- Sprint Cancel, Aim and Lean Toggle
+- AutoWalk for Anomaly
+- Hold or Toggle (original by duddy)
+- Lower Weapon Sprint
 
-Module overhead: <0.01ms per keypress (unnoticeable). Maintainability gains outweigh microscopic performance cost.
+## Installation
+
+Add via Mod Organizer 2 (Ctrl+M) near the end.
