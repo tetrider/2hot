@@ -7,7 +7,7 @@ A set of engine workarounds — my attempt to make Anomaly feel more comfortable
 ## Stance systems
 
 - **Progressive** — tap crouch for crouch, hold crouch for prone. Most natural feel. Prone key works as backup.
-- **Fluid Stance** — crouch and walk keys switch between modes cleanly: pressing crouch while walking switches to crouch rather than standing up. No accidental prone from crouch+walk — use the prone key.
+- **Fluid Stance** — crouch and walk keys switch between modes cleanly: pressing crouch while walking switches to crouch rather than prone. No accidental prone from crouch+walk.
 - **Vanilla Prone** — adds only a dedicated prone key. Crouch and walk behave exactly like vanilla STALKER.
 
 ## Rapid Fire *(experimental)*
