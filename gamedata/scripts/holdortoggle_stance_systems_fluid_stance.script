@@ -133,15 +133,6 @@ local function deactivate_prone_via_stance(config)
             return false  -- Keep waiting
         end
 
-        -- Skip restoration if sprint blocking restoration is already handling it
-        if (config.key_binding_keep == key_bindings.kCROUCH and state.restoring_crouch_from_sprint_block) or
-           (config.key_binding_keep == key_bindings.kACCEL and state.restoring_walk_from_sprint_block) then
-            utils.debug_log(config.system_name .. " Sprint blocking restoration active, skipping prone restoration")
-            toggling_prone_programmatically = false
-            state.prone_restoration_active = false
-            return true
-        end
-
         -- After waiting, restore once if stance is off (only if not already restored)
         if not restored and not IsMoveState(config.move_state_keep) then
             utils.debug_log(config.system_name .. " " .. config.stance_name .. " off after prone exit, restoring once")
@@ -315,7 +306,7 @@ function on_key_press(key)
     if (key == bind_to_dik(key_bindings.kCROUCH)) then
         -- If this is a programmatic action, skip fluid stance logic
         -- Game engine will still toggle crouch state regardless of return value
-        if state.restoring_crouch_from_sprint_block or state.restoring_crouch_from_prone_exit or state.fixing_same_frame_prone then
+        if state.restoring_crouch_from_prone_exit or state.fixing_same_frame_prone then
             utils.debug_log("[FLUID_STANCE] Skipping programmatic crouch action")
             return true  -- Block other handlers, but game engine still processes the key
         end
@@ -359,7 +350,7 @@ function on_key_press(key)
     if (key == bind_to_dik(key_bindings.kACCEL)) then
         -- If this is a programmatic action, skip fluid stance logic
         -- Game engine will still toggle walk state regardless of return value
-        if state.restoring_walk_from_sprint_block or state.restoring_walk_from_prone_exit or state.fixing_same_frame_prone then
+        if state.restoring_walk_from_prone_exit or state.fixing_same_frame_prone then
             utils.debug_log("[FLUID_STANCE] Skipping programmatic walk action")
             return true  -- Block other handlers, but game engine still processes the key
         end

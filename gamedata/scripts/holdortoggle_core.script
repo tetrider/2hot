@@ -139,10 +139,8 @@ function on_key_press(key)
         key_name = "RELOAD"
     end
 
-    utils.debug_log(string.format("[CORE ENTRY] key_press #%d: key=%s(%d) sprint_block_crouch=%s sprint_block_walk=%s prone_crouch=%s prone_walk=%s",
+    utils.debug_log(string.format("[CORE ENTRY] key_press #%d: key=%s(%d) prone_crouch=%s prone_walk=%s",
         recursion_counter, key_name, key,
-        tostring(state.restoring_crouch_from_sprint_block),
-        tostring(state.restoring_walk_from_sprint_block),
         tostring(state.restoring_crouch_from_prone_exit),
         tostring(state.restoring_walk_from_prone_exit)))
 

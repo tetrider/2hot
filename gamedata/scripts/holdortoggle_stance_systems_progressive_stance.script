@@ -173,16 +173,7 @@ local function deactivate_prone_via_stance(config)
             return false  -- Repeat on next frame
         end
 
-        -- State was canceled, check if we should restore it
-        -- Don't restore if movement_base is currently handling sprint block restoration
-        utils.debug_log("[PROGRESSIVE_STANCE] State canceled - restoring_crouch=" .. tostring(state.restoring_crouch_from_sprint_block) .. ", restoring_walk=" .. tostring(state.restoring_walk_from_sprint_block))
-
-        if state.restoring_crouch_from_sprint_block or state.restoring_walk_from_sprint_block then
-            utils.debug_log(config.system_name .. " " .. config.stance_name .. " off after " .. repeat_count .. " frames, skipping (sprint block restoration active)")
-            return true  -- Stop without restoring
-        end
-
-        -- Restore the stance (mark as programmatic to prevent hold-to-prone timer)
+        -- State was canceled, restore the stance (mark as programmatic to prevent hold-to-prone timer)
         utils.debug_log(config.system_name .. " " .. config.stance_name .. " off after " .. repeat_count .. " frames, restoring")
         restoring_from_prone_exit = true
         level.press_action(bind_to_dik(config.key_binding_keep))
@@ -398,7 +389,7 @@ function on_key_press(key)
 
         -- If this is a programmatic action, skip progressive stance logic
         -- Game engine will still toggle crouch state regardless of return value
-        if state.restoring_crouch_from_sprint_block or state.fixing_same_frame_prone then
+        if state.fixing_same_frame_prone then
             utils.debug_log("[PROGRESSIVE_STANCE] Skipping programmatic crouch action")
             return true  -- Block other handlers, but game engine still processes the key
         end
@@ -515,7 +506,7 @@ function on_key_press(key)
     if (key == bind_to_dik(key_bindings.kACCEL)) then
         -- If this is a programmatic action, skip progressive stance logic
         -- Game engine will still toggle walk state regardless of return value
-        if state.restoring_walk_from_sprint_block or state.fixing_same_frame_prone then
+        if state.fixing_same_frame_prone then
             utils.debug_log("[PROGRESSIVE_STANCE] Skipping programmatic walk action")
             return true  -- Block other handlers, but game engine still processes the key
         end
