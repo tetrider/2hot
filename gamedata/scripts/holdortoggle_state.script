@@ -24,10 +24,6 @@ holding_pda = false
 moving = false
 autowalking = false
 
--- Prone restoration state (prevents recursion during prone exit stance restoration)
-restoring_crouch_from_prone_exit = false
-restoring_walk_from_prone_exit = false
-
 -- Opposite stance cancellation state (prevents recursion when canceling opposite stance)
 canceling_crouch = false
 canceling_walk = false
