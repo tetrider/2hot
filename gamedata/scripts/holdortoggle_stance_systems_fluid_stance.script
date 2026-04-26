@@ -77,6 +77,34 @@ function set_crouch_mode(mode)
     utils.debug_log("[FLUID_STANCE] Crouch mode set to: " .. tostring(mode))
 end
 
+-- Helper function to cancel opposite stance when one is pressed
+-- Parameters:
+--   current_move_state: string - current move state to check ("mcAccel" or "mcCrouch")
+--   opposite_key_binding: number - key binding to cancel (kACCEL or kCROUCH)
+--   canceling_flag: string - state flag to set ("canceling_walk" or "canceling_crouch")
+--   timeevent_id: string - TimeEvent ID base ("crouch" or "walk")
+--   stance_name: string - stance name for logging ("crouch" or "walk")
+local function cancel_opposite_stance(current_move_state, opposite_key_binding, canceling_flag, timeevent_id, stance_name)
+    local opposite_dik = bind_to_dik(opposite_key_binding)
+    local opposite_state = opposite_key_binding == key_bindings.kACCEL and "mcAccel" or "mcCrouch"
+
+    if IsMoveState(current_move_state) then
+        state[canceling_flag] = true
+        utils.debug_log("[FLUID_STANCE] Canceling " .. stance_name .. " (" .. timeevent_id .. " pressed)")
+        level.press_action(opposite_dik)
+
+        -- Schedule TimeEvent to catch same-frame user press
+        CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_" .. timeevent_id .. "_immediate", 0.001, function()
+            return stance_utils.check_same_frame_prone("[FLUID_STANCE]", timeevent_id, prone_active, "fluid_stance_prevent_prone", "fix_same_frame_" .. timeevent_id .. "_immediate", 1, false)
+        end)
+    else
+        -- No immediate cancellation ran, schedule TimeEvent to catch same-frame presses
+        CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_" .. timeevent_id, 0.001, function()
+            return stance_utils.check_same_frame_prone("[FLUID_STANCE]", opposite_state == "mcAccel" and "walk" or "crouch", prone_active, "fluid_stance_prevent_prone", "fix_same_frame_" .. timeevent_id, 1, false)
+        end)
+    end
+end
+
 function on_before_key_press(dik, bind, dis, flags)
     if prone_active and not toggling_prone_programmatically then
         local crouch_dik = bind_to_dik(key_bindings.kCROUCH)
@@ -215,87 +243,47 @@ function on_key_press(key)
 
     -- Crouch key pressed
     if (key == bind_to_dik(key_bindings.kCROUCH)) then
-        -- If this is a programmatic action, skip fluid stance logic
-        -- Game engine will still toggle crouch state regardless of return value
         if state.fixing_same_frame_prone then
             utils.debug_log("[FLUID_STANCE] Skipping programmatic crouch action (same-frame)")
-            return true  -- Block other handlers, but game engine still processes the key
+            return true
         end
 
-        -- Prone exit was handled in on_before_key_press - block normal handlers
         if exiting_prone_via_crouch then
             utils.debug_log("[FLUID_STANCE] Skipping normal crouch handler (exiting prone)")
             return true
         end
 
-        -- If walk is active, immediately cancel it (Fluid Stance behavior)
-        if not state.canceling_crouch and IsMoveState("mcAccel") then
-            state.canceling_walk = true
-            utils.debug_log("[FLUID_STANCE] Canceling walk (crouch pressed)")
-            level.press_action(bind_to_dik(key_bindings.kACCEL))
-
-            -- Schedule TimeEvent to catch same-frame user press
-            -- This handles user pressing crouch again while we're canceling walk
-            CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_crouch_immediate", 0.001, function()
-                return stance_utils.check_same_frame_prone("[FLUID_STANCE]", "crouch", prone_active, "fluid_stance_prevent_prone", "fix_same_frame_crouch_immediate", 1, false)
-            end)
-        else
-            -- No immediate cancellation ran, schedule TimeEvent to catch same-frame presses
-            -- This handles the case where both keys are pressed in the same frame before engine processes them
-            CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_crouch", 0.001, function()
-                return stance_utils.check_same_frame_prone("[FLUID_STANCE]", "walk", prone_active, "fluid_stance_prevent_prone", "fix_same_frame_crouch", 1, false)
-            end)
+        if not state.canceling_crouch then
+            cancel_opposite_stance("mcAccel", key_bindings.kACCEL, "canceling_walk", "crouch", "walk")
         end
 
-        -- Notify stance vignette of stance change
         if holdortoggle_features_stance_vignette then
             holdortoggle_features_stance_vignette.on_stance_change()
         end
 
-        -- Let crouch key press continue normally
         return false
     end
 
     -- Walk key pressed
     if (key == bind_to_dik(key_bindings.kACCEL)) then
-        -- If this is a programmatic action, skip fluid stance logic
-        -- Game engine will still toggle walk state regardless of return value
         if state.fixing_same_frame_prone then
             utils.debug_log("[FLUID_STANCE] Skipping programmatic walk action (same-frame)")
-            return true  -- Block other handlers, but game engine still processes the key
+            return true
         end
 
-        -- Prone exit was handled in on_before_key_press - block normal handlers
         if exiting_prone_via_walk then
             utils.debug_log("[FLUID_STANCE] Skipping normal walk handler (exiting prone)")
             return true
         end
 
-        -- If crouch is active, immediately cancel it (Fluid Stance behavior)
-        if not state.canceling_walk and IsMoveState("mcCrouch") then
-            state.canceling_crouch = true
-            utils.debug_log("[FLUID_STANCE] Canceling crouch (walk pressed)")
-            level.press_action(bind_to_dik(key_bindings.kCROUCH))
-
-            -- Schedule TimeEvent to catch same-frame user press
-            -- This handles user pressing walk again while we're canceling crouch
-            CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_walk_immediate", 0.001, function()
-                return stance_utils.check_same_frame_prone("[FLUID_STANCE]", "walk", prone_active, "fluid_stance_prevent_prone", "fix_same_frame_walk_immediate", 1, false)
-            end)
-        else
-            -- No immediate cancellation ran, schedule TimeEvent to catch same-frame presses
-            -- This handles the case where both keys are pressed in the same frame before engine processes them
-            CreateTimeEvent("fluid_stance_prevent_prone", "fix_same_frame_walk", 0.001, function()
-                return stance_utils.check_same_frame_prone("[FLUID_STANCE]", "crouch", prone_active, "fluid_stance_prevent_prone", "fix_same_frame_walk", 1, false)
-            end)
+        if not state.canceling_walk then
+            cancel_opposite_stance("mcCrouch", key_bindings.kCROUCH, "canceling_crouch", "walk", "crouch")
         end
 
-        -- Notify stance vignette of stance change
         if holdortoggle_features_stance_vignette then
             holdortoggle_features_stance_vignette.on_stance_change()
         end
 
-        -- Let walk key press continue normally
         return false
     end
 
