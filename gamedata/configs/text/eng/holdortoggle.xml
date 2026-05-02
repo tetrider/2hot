@@ -282,6 +282,27 @@
 		<text>How long (in milliseconds) you must hold the crouch key to trigger stance transitions. Controls: standing to prone, crouch to prone, and prone to standing. Lower = faster transitions, higher = easier to tap without accidentally changing stance.</text>
 	</string>
 
+	<!-- Vanilla Prone QoL section -->
+	<string id="ui_mcm_holdortoggle_stance_vanilla">
+		<text>Vanilla Prone Settings</text>
+	</string>
+
+	<!-- vanilla_prone_untoggle_walk -->
+	<string id="ui_mcm_holdortoggle_stance_vanilla_prone_untoggle_walk">
+		<text>Untoggle Walk on Crouch Exit</text>
+	</string>
+	<string id="ui_mcm_holdortoggle_stance_vanilla_prone_untoggle_walk_desc">
+		<text>When pressing Crouch to exit prone, automatically untoggle Walk as well. Prone > Crouch > standing (walk off).</text>
+	</string>
+
+	<!-- vanilla_prone_untoggle_crouch -->
+	<string id="ui_mcm_holdortoggle_stance_vanilla_prone_untoggle_crouch">
+		<text>Untoggle Crouch on Walk Exit</text>
+	</string>
+	<string id="ui_mcm_holdortoggle_stance_vanilla_prone_untoggle_crouch_desc">
+		<text>When pressing Walk to exit prone, automatically untoggle Crouch as well. Prone > Walk > standing (crouch off).</text>
+	</string>
+
 	<!-- ========================================== -->
 	<!-- RAPID FIRE TAB OPTIONS -->
 	<!-- ========================================== -->

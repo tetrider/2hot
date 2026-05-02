@@ -11,6 +11,7 @@ local prone_active = false
 local holding_prone_key = false
 local prone_activated_by_this_press = false
 local prone_exit_time = 0  -- Track when prone was exited (for 200ms animation delay)
+local untoggling_programmatically = false  -- Guard against cascade when calling level.press_action
 
 -- Mode setting
 local pronekey_mode = 0 -- 0=Disabled, 1=Hold, 2=Toggle, 3=Hold+Toggle
@@ -53,6 +54,52 @@ function set_pronekey_mode(mode)
 end
 
 function on_key_press(key)
+    -- Crouch pressed while prone: optionally untoggle walk
+    if key == bind_to_dik(key_bindings.kCROUCH) and not untoggling_programmatically then
+        local is_prone = prone_active or (IsMoveState("mcCrouch") and IsMoveState("mcAccel"))
+        utils.debug_log("[VANILLA_PRONE] Crouch pressed: prone_active=" .. tostring(prone_active) .. ", is_prone=" .. tostring(is_prone) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")))
+        if is_prone then
+            prone_active = false
+            local untoggle = ui_mcm and ui_mcm.get("holdortoggle/stance/vanilla_prone_untoggle_walk") or false
+            utils.debug_log("[VANILLA_PRONE] Exiting prone via crouch, untoggle_walk=" .. tostring(untoggle))
+            if untoggle then
+                CreateTimeEvent("vanilla_prone", "untoggle_walk_on_crouch", 0, function()
+                    utils.debug_log("[VANILLA_PRONE] untoggle_walk timer: mcAccel=" .. tostring(IsMoveState("mcAccel")))
+                    if IsMoveState("mcAccel") then
+                        untoggling_programmatically = true
+                        level.press_action(bind_to_dik(key_bindings.kACCEL))
+                        untoggling_programmatically = false
+                    end
+                    return true
+                end)
+            end
+            return false
+        end
+    end
+
+    -- Walk pressed while prone: optionally untoggle crouch
+    if key == bind_to_dik(key_bindings.kACCEL) and not untoggling_programmatically then
+        local is_prone = prone_active or (IsMoveState("mcCrouch") and IsMoveState("mcAccel"))
+        utils.debug_log("[VANILLA_PRONE] Walk pressed: prone_active=" .. tostring(prone_active) .. ", is_prone=" .. tostring(is_prone) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")))
+        if is_prone then
+            prone_active = false
+            local untoggle = ui_mcm and ui_mcm.get("holdortoggle/stance/vanilla_prone_untoggle_crouch") or false
+            utils.debug_log("[VANILLA_PRONE] Exiting prone via walk, untoggle_crouch=" .. tostring(untoggle))
+            if untoggle then
+                CreateTimeEvent("vanilla_prone", "untoggle_crouch_on_walk", 0, function()
+                    utils.debug_log("[VANILLA_PRONE] untoggle_crouch timer: mcCrouch=" .. tostring(IsMoveState("mcCrouch")))
+                    if IsMoveState("mcCrouch") then
+                        untoggling_programmatically = true
+                        level.press_action(bind_to_dik(key_bindings.kCROUCH))
+                        untoggling_programmatically = false
+                    end
+                    return true
+                end)
+            end
+            return false
+        end
+    end
+
     -- Sprint cancels prone (for consistency with other systems)
     if (key == bind_to_dik(stance_utils.get_sprint_key())) and prone_active then
         if stance_utils.should_cancel_prone_for_sprint() then

@@ -110,6 +110,11 @@ function on_mcm_load()
                 {id = "pronekey", type = "key_bind", val = 2, def = DIK_keys.DIK_Z},
                 -- {id = "unbind_pronekey", type = "button", functor_ui = {unbind_pronekey_func}},
 
+                -- Vanilla Prone QoL Settings
+                {id = "title_vanilla_prone", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_vanilla", size = {512, 50}, spacing = 20},
+                {id = "vanilla_prone_untoggle_walk", type = "check", val = 1, def = false},
+                {id = "vanilla_prone_untoggle_crouch", type = "check", val = 1, def = false},
+
                 -- Progressive Stance Settings
                 {id = "title_progressive", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_progressive", size = {512, 50}, spacing = 20},
                 {id = "prog_hold_time_mode", type = "list", val = 2, def = 0, hint = "mcm_prog_hold_time_mode_hint", content = {{0,"Use MCM Hold Time"}, {1,"Custom Delay"}}},
