@@ -120,6 +120,8 @@ function set_walk_mode(mode)
 end
 
 function on_before_key_press(dik, bind, dis, flags)
+    if not utils.is_gameplay_active() then return false end
+
     local crouch_dik = bind_to_dik(key_bindings.kCROUCH)
     local walk_dik = bind_to_dik(key_bindings.kACCEL)
 

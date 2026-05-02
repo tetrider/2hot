@@ -73,6 +73,10 @@ local function handle_sprint_blocking(flags)
         return false
     end
 
+    if not utils.is_gameplay_active() then
+        return false
+    end
+
     if state.allow_sprint_activation_from_forward then
         return false
     end
