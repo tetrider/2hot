@@ -111,7 +111,7 @@ local function try_activate_sprint_on_forward()
         if IsMoveState("mcFwd") then
             local ads_is_active = axr_main.weapon_is_zoomed
 
-            if hot_sprint == 0 or sprint_key_was_blocked then
+            if hot_sprint == 0 or hot_sprint == 2 or sprint_key_was_blocked then
                 -- Set flags for sprint activation and preservation (if ADS active)
                 state.allow_sprint_activation_from_forward = true
                 state.preserve_sprint_flags = ads_is_active
