@@ -1,6 +1,9 @@
 -- holdortoggle/core.script
 -- Main coordinator - loads all modules and dispatches events
 
+-- Reverse lookup: bind constant → name (built once in initialize(), used for debug logging)
+local bind_name_map = {}
+
 -- Load all modules
 local state = holdortoggle_state
 local utils = holdortoggle_utils
@@ -23,6 +26,24 @@ local fdda_integration = holdortoggle_features_fdda_integration
 
 -- Initialize module cross-references
 function initialize()
+    -- Build reverse bind lookup for debug logging (key_bindings is userdata, must list manually)
+    local kb = key_bindings
+    local known = {
+        kFWD=kb.kFWD, kBACK=kb.kBACK, kL_STRAFE=kb.kL_STRAFE, kR_STRAFE=kb.kR_STRAFE,
+        kL_LOOKOUT=kb.kL_LOOKOUT, kR_LOOKOUT=kb.kR_LOOKOUT,
+        kCROUCH=kb.kCROUCH, kACCEL=kb.kACCEL, kJUMP=kb.kJUMP,
+        kCONSOLE=kb.kCONSOLE,
+        kWPN_FIRE=kb.kWPN_FIRE, kWPN_ZOOM=kb.kWPN_ZOOM, kWPN_RELOAD=kb.kWPN_RELOAD,
+        kWPN_1=kb.kWPN_1, kWPN_2=kb.kWPN_2, kWPN_3=kb.kWPN_3,
+        kINVENTORY=kb.kINVENTORY, kACTIVE_JOBS=kb.kACTIVE_JOBS,
+        kUSE=kb.kUSE, kQUICK_USE_1=kb.kQUICK_USE_1, kQUICK_USE_2=kb.kQUICK_USE_2,
+        kQUICK_USE_3=kb.kQUICK_USE_3, kQUICK_USE_4=kb.kQUICK_USE_4,
+    }
+    known["kSPRINT"] = stance_utils.get_sprint_key()
+    for name, val in pairs(known) do
+        if val then bind_name_map[val] = name end
+    end
+
     -- Give config access to all modules
     config.set_modules({
         movement_base = movement_base,
@@ -128,17 +149,8 @@ function on_key_press(key)
     -- Entry point logging with recursion detection
     recursion_counter = recursion_counter + 1
 
-    local key_name = "UNKNOWN"
     local key_bind = dik_to_bind(key)
-    if key_bind == key_bindings.kCROUCH then
-        key_name = "CROUCH"
-    elseif key_bind == key_bindings.kACCEL then
-        key_name = "WALK"
-    elseif key_bind == stance_utils.get_sprint_key() then
-        key_name = "SPRINT"
-    elseif key_bind == key_bindings.kWPN_RELOAD then
-        key_name = "RELOAD"
-    end
+    local key_name = bind_name_map[key_bind] or "UNKNOWN"
 
     utils.debug_log(string.format("[CORE ENTRY] key_press #%d: key=%s(%d) prone_crouch=%s prone_walk=%s",
         recursion_counter, key_name, key,
