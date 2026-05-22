@@ -81,8 +81,6 @@ function on_key_press(key)
 end
 
 function on_key_hold(key)
-    local is_modifier = utils.is_modifier_key(key)
-
     -- Lean hold
     -- For Hold+Toggle mode (2), track when key passes hold threshold
     if (dik_to_bind(key) == key_bindings.kL_LOOKOUT) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcLLookout") then
@@ -91,14 +89,12 @@ function on_key_hold(key)
         if hot_lean == 2 then
             state.holding_lean_left = true
         end
-        if is_modifier then return end
     elseif (dik_to_bind(key) == key_bindings.kR_LOOKOUT) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcRLookout") then
         -- Only set holding for Hold+Toggle mode (2)
         -- Hold mode (0) already set it in on_key_press
         if hot_lean == 2 then
             state.holding_lean_right = true
         end
-        if is_modifier then return end
     end
 end
 

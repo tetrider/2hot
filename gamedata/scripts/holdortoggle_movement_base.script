@@ -233,8 +233,6 @@ function on_key_press(key)
 end
 
 function on_key_hold(key)
-    local is_modifier = utils.is_modifier_key(key)
-
     -- Crouch hold (only if no stance system is handling it)
     -- For Hold+Toggle mode (2), track when key passes hold threshold
     if (dik_to_bind(key) == key_bindings.kCROUCH) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
@@ -244,7 +242,6 @@ function on_key_hold(key)
             if hot_crouch == 2 then
                 state.holding_crouch = true
             end
-            if is_modifier then return end
         end
     -- Walk hold (only if no stance system is handling it)
     -- For Hold+Toggle mode (2), track when key passes hold threshold
@@ -255,7 +252,6 @@ function on_key_hold(key)
             if hot_walk == 2 then
                 state.holding_walk = true
             end
-            if is_modifier then return end
         end
     -- Sprint hold
     -- For Hold+Toggle mode (2), track when key passes hold threshold
@@ -266,7 +262,6 @@ function on_key_hold(key)
             state.holding_sprint = true
             utils.debug_log("[MOVEMENT_BASE] on_key_hold: sprint held past threshold (Hold+Toggle mode)")
         end
-        if is_modifier then return end
     end
 end
 

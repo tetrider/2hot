@@ -138,7 +138,6 @@ function on_key_press(key)
 end
 
 function on_key_hold(key)
-    local is_modifier = utils.is_modifier_key(key)
     if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) and ui_mcm.key_hold("holdortoggle", key) then
         if hot_aim == 2 then
             -- Guard: don't activate hold mode if aim was just toggled off by pressing while zoomed
@@ -185,7 +184,6 @@ function on_key_hold(key)
                 return true
             end)
         end
-        if is_modifier then return end
     end
 end
 

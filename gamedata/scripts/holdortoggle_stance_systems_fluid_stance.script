@@ -364,7 +364,6 @@ function on_key_hold(key)
                 -- Normal Hold+Toggle mode behavior (not exiting prone)
                 state.holding_crouch = true
             end
-            if utils.is_modifier_key(key) then return true end
             return true
         end
     -- Walk hold (respects walk mode setting)
@@ -383,7 +382,6 @@ function on_key_hold(key)
                 -- Normal Hold+Toggle mode behavior (not exiting prone)
                 state.holding_walk = true
             end
-            if utils.is_modifier_key(key) then return true end
             return true
         end
     -- Prone key hold (only if prone key mode is enabled)

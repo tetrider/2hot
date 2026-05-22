@@ -561,7 +561,6 @@ function on_key_hold(key)
     if (dik_to_bind(key) == key_bindings.kCROUCH) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
         if not exiting_prone_via_crouch then
             state.holding_crouch = true
-            if utils.is_modifier_key(key) then return true end
         end
         return true
     -- Walk hold (respects walk mode setting)
@@ -574,7 +573,6 @@ function on_key_hold(key)
             -- Normal Hold+Toggle mode behavior (not exiting prone)
             state.holding_walk = true
         end
-        if utils.is_modifier_key(key) then return true end
         return true
     -- Prone key hold (only if prone key mode is enabled)
     elseif (key == pronekey) and pronekey_mode > 0 and ui_mcm.key_hold("holdortoggle", key) and prone_active then
