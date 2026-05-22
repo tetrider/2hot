@@ -236,14 +236,14 @@ function on_key_press(key)
     -- PDA key press
     -- NOTE: This won't be called when any PDA mode is enabled
     -- because on_before_key_press blocks the key press
-    if (key == bind_to_dik(key_bindings.kACTIVE_JOBS)) then
+    if (dik_to_bind(key) == key_bindings.kACTIVE_JOBS) then
         utils.debug_log("[HOT_PDA] on_key_press: PDA key pressed (shouldn't happen if feature is enabled)")
     end
 end
 
 function on_key_hold(key)
     -- PDA key hold
-    if (key == bind_to_dik(key_bindings.kACTIVE_JOBS)) then
+    if (dik_to_bind(key) == key_bindings.kACTIVE_JOBS) then
         local holds = ui_mcm.key_hold("holdortoggle", key)
         utils.debug_log("[HOT_PDA] on_key_hold called: pda_mode=" .. tostring(pda_mode) .. ", holds=" .. tostring(holds))
 
@@ -340,7 +340,7 @@ end
 
 function on_key_release(key)
     -- PDA key release
-    if (key == bind_to_dik(key_bindings.kACTIVE_JOBS)) then
+    if (dik_to_bind(key) == key_bindings.kACTIVE_JOBS) then
         -- Track if we were in zoom opening mode
         local was_zoom_opening = state.pda_zoom_opening
 

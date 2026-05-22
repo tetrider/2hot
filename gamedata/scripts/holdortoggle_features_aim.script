@@ -28,7 +28,7 @@ function on_before_key_press(dik, bind, dis, flags)
 end
 
 function on_key_press(key)
-    if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) then
         -- Skip when fluid_aim is pressing zoom internally (equip scheduling) to prevent
         -- it from cancelling the tap-clear timer and causing aim to carry over to new weapons
         if _G.fluid_aim_internal_press then return end
@@ -139,7 +139,7 @@ end
 
 function on_key_hold(key)
     local is_modifier = utils.is_modifier_key(key)
-    if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) and ui_mcm.key_hold("holdortoggle", key) then
+    if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) and ui_mcm.key_hold("holdortoggle", key) then
         if hot_aim == 2 then
             -- Guard: don't activate hold mode if aim was just toggled off by pressing while zoomed
             if aim_toggled_off_by_press then
@@ -190,7 +190,7 @@ function on_key_hold(key)
 end
 
 function on_key_release(key)
-    if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) then
         local aim_was_held = state.holding_aim
 
         -- Clear the "toggled off by press" flag when button is released
@@ -205,7 +205,7 @@ function on_key_release(key)
             utils.debug_log("[AIM] key_release: Hold mode - wpn_aim_toggle=on")
             if state.holding_aim and axr_main.weapon_is_zoomed then
                 utils.debug_log("[AIM] key_release: Hold mode - pressing zoom to deactivate")
-                level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                level.press_action(key)
             end
             state.holding_aim = false
             state.aim_key_down = false
@@ -219,7 +219,7 @@ function on_key_release(key)
                 utils.debug_log("[AIM] key_release: Hold+Toggle mode - wpn_aim_toggle=on")
                 if axr_main.weapon_is_zoomed then
                     utils.debug_log("[AIM] key_release: Hold+Toggle mode - pressing zoom to deactivate")
-                    level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+                    level.press_action(key)
 
                     -- If fire button still held, re-press it after zoom deactivates (only for full-auto weapons)
                     local fire_state = key_state(bind_to_dik(key_bindings.kWPN_FIRE))

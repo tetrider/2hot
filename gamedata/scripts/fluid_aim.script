@@ -1169,7 +1169,7 @@ end
 
 -- Key press to prevent toggle aim release from aiming instantly again
 local function on_key_press(key)
-    if (key == bind_to_dik(key_bindings.kWPN_FIRE)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_FIRE) then
         debug_log("[KEY] FIRE pressed: reset_fire_on_load=true -> false")
         fluid_aim_reset_fire_on_load = false
 
@@ -1196,7 +1196,7 @@ local function on_key_press(key)
             end
         end
     end
-    if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) then
         if ui_options.get("control/general/aim_toggle") and axr_main.weapon_is_zoomed and not is_holdortoggle_managing_aim() then
             debug_log("[KEY] ZOOM pressed (already zoomed)")
             fluid_aim_toggle = true
@@ -1216,10 +1216,10 @@ end
 
 -- Key release to reset toggle aim release
 local function on_key_release(key)
-    if (key == bind_to_dik(key_bindings.kWPN_FIRE)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_FIRE) then
         debug_log("[KEY] FIRE released: reset_fire_on_load=false -> true")
     end
-    if (key == bind_to_dik(key_bindings.kWPN_ZOOM)) then
+    if (dik_to_bind(key) == key_bindings.kWPN_ZOOM) then
         if ui_options.get("control/general/aim_toggle") and not is_holdortoggle_managing_aim() then
             debug_log("[KEY] ZOOM released")
             fluid_aim_toggle = false

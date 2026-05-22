@@ -19,7 +19,7 @@ end
 
 function on_key_press(key)
     -- Cancel autowalk if moving forward/backward
-    if (key == bind_to_dik(key_bindings.kFWD)) or (key == bind_to_dik(key_bindings.kBACK)) then
+    if (dik_to_bind(key) == key_bindings.kFWD) or (dik_to_bind(key) == key_bindings.kBACK) then
         if state.autowalking then
             toggle_autowalk()
         end

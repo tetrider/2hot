@@ -55,7 +55,7 @@ end
 
 function on_key_press(key)
     -- Crouch pressed while prone: optionally untoggle walk
-    if key == bind_to_dik(key_bindings.kCROUCH) and not untoggling_programmatically then
+    if dik_to_bind(key) == key_bindings.kCROUCH and not untoggling_programmatically then
         local is_prone = prone_active or (IsMoveState("mcCrouch") and IsMoveState("mcAccel"))
         utils.debug_log("[VANILLA_PRONE] Crouch pressed: prone_active=" .. tostring(prone_active) .. ", is_prone=" .. tostring(is_prone) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")))
         if is_prone then
@@ -78,7 +78,7 @@ function on_key_press(key)
     end
 
     -- Walk pressed while prone: optionally untoggle crouch
-    if key == bind_to_dik(key_bindings.kACCEL) and not untoggling_programmatically then
+    if dik_to_bind(key) == key_bindings.kACCEL and not untoggling_programmatically then
         local is_prone = prone_active or (IsMoveState("mcCrouch") and IsMoveState("mcAccel"))
         utils.debug_log("[VANILLA_PRONE] Walk pressed: prone_active=" .. tostring(prone_active) .. ", is_prone=" .. tostring(is_prone) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")))
         if is_prone then
@@ -101,7 +101,7 @@ function on_key_press(key)
     end
 
     -- Sprint cancels prone (for consistency with other systems)
-    if (key == bind_to_dik(stance_utils.get_sprint_key())) and prone_active then
+    if (dik_to_bind(key) == stance_utils.get_sprint_key()) and prone_active then
         if stance_utils.should_cancel_prone_for_sprint() then
             utils.debug_log("[VANILLA_PRONE] Sprint pressed while prone - canceling prone")
             toggle_prone()

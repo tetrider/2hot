@@ -127,7 +127,7 @@ function on_before_key_press(dik, bind, dis, flags)
 
     -- CROUCH WHILE ALREADY CROUCHED: Block toggle and handle hold/tap decision directly
     -- But not if we're in the process of exiting prone
-    if dik == crouch_dik and IsMoveState("mcCrouch") and not prone_active and not exiting_prone_via_crouch and not exiting_prone_via_walk and not waiting_for_crouch_decision and not toggling_crouch_programmatically then
+    if bind == key_bindings.kCROUCH and IsMoveState("mcCrouch") and not prone_active and not exiting_prone_via_crouch and not exiting_prone_via_walk and not waiting_for_crouch_decision and not toggling_crouch_programmatically then
         utils.debug_log("[PROGRESSIVE_STANCE] on_before_key_press: Crouch pressed while crouched - blocking toggle, starting hold detection")
         flags.ret_value = false
 
@@ -169,7 +169,7 @@ function on_before_key_press(dik, bind, dis, flags)
 
 
     -- PRONE EXIT via crouch
-    if dik == crouch_dik and prone_active and not toggling_prone_programmatically then
+    if bind == key_bindings.kCROUCH and prone_active and not toggling_prone_programmatically then
         utils.debug_log("[PROGRESSIVE_STANCE] on_before_key_press: Exiting prone via crouch")
         flags.ret_value = false
         prone_active = false
@@ -214,7 +214,7 @@ function on_before_key_press(dik, bind, dis, flags)
     end
 
     -- PRONE EXIT via walk
-    if dik == walk_dik and prone_active and not toggling_prone_programmatically then
+    if bind == key_bindings.kACCEL and prone_active and not toggling_prone_programmatically then
         utils.debug_log("[PROGRESSIVE_STANCE] on_before_key_press: Exiting prone via walk")
         flags.ret_value = false
         prone_active = false
@@ -291,7 +291,7 @@ function on_key_press(key)
     -- WHY: Ensures the flag is ALWAYS cleared, even when blocked by other checks.
     -- BUG FIX: Without this at the top, rapid crouch→walk→crouch sequences would leave
     --          the flag set permanently, causing future presses to be ignored.
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and state.canceling_crouch then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and state.canceling_crouch then
         utils.debug_log("[PROGRESSIVE_STANCE] Clearing canceling_crouch flag (programmatic cancellation detected)")
         state.canceling_crouch = false
         return false  -- Don't continue processing
@@ -299,7 +299,7 @@ function on_key_press(key)
 
     -- PRIORITY 1: Handle programmatic walk cancellation FIRST (before any early returns)
     -- WHY: Same reason as crouch - ensures flag is always cleared.
-    if (key == bind_to_dik(key_bindings.kACCEL)) and state.canceling_walk then
+    if (dik_to_bind(key) == key_bindings.kACCEL) and state.canceling_walk then
         utils.debug_log("[PROGRESSIVE_STANCE] Clearing canceling_walk flag (programmatic cancellation detected)")
         state.canceling_walk = false
         return false  -- Don't continue processing
@@ -319,7 +319,7 @@ function on_key_press(key)
     --       Timestamp is the ground truth for simultaneity.
 
     -- Crouch key: Block if walk was pressed very recently (< 2ms)
-    if (key == bind_to_dik(key_bindings.kCROUCH)) then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) then
         local now = time_global()
         local walk_pressed_recently = (now - state.last_walk_press_time) < (state.crouch_walk_simultaneity_threshold * 1000)
 
@@ -335,7 +335,7 @@ function on_key_press(key)
     end
 
     -- Walk key: Block if crouch was pressed very recently (< 2ms)
-    if (key == bind_to_dik(key_bindings.kACCEL)) then
+    if (dik_to_bind(key) == key_bindings.kACCEL) then
         local now = time_global()
         local crouch_pressed_recently = (now - state.last_crouch_press_time) < (state.crouch_walk_simultaneity_threshold * 1000)
 
@@ -351,19 +351,19 @@ function on_key_press(key)
     -- PRIORITY 3: Don't process crouch/walk if we're programmatically toggling prone
     -- WHY: Prevents user input from interfering with prone activation/deactivation.
     -- NOTE: This comes AFTER simultaneity checks so they always run, even during prone toggle.
-    if toggling_prone_programmatically and (key == bind_to_dik(key_bindings.kCROUCH) or key == bind_to_dik(key_bindings.kACCEL)) then
+    if toggling_prone_programmatically and (dik_to_bind(key) == key_bindings.kCROUCH or dik_to_bind(key) == key_bindings.kACCEL) then
         return true
     end
 
     -- PRIORITY 3: Don't process crouch if we're programmatically toggling it
     -- WHY: Prevents interference during immediate walk→crouch cancellation and double-press toggle cancellation.
-    if toggling_crouch_programmatically and (key == bind_to_dik(key_bindings.kCROUCH)) then
+    if toggling_crouch_programmatically and (dik_to_bind(key) == key_bindings.kCROUCH) then
         utils.debug_log("[PROGRESSIVE_STANCE] Blocking crouch (toggling_crouch_programmatically=true)")
         return true
     end
 
     -- Crouch key pressed
-    if (key == bind_to_dik(key_bindings.kCROUCH)) then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) then
         utils.debug_log("[PROGRESSIVE_STANCE] >>> Crouch handler START: mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")) .. ", canceling_crouch=" .. tostring(state.canceling_crouch) .. ", toggling_programmatically=" .. tostring(toggling_crouch_programmatically))
 
         -- If this is a programmatic action, skip progressive stance logic
@@ -443,7 +443,7 @@ function on_key_press(key)
     end
 
     -- Walk key pressed
-    if (key == bind_to_dik(key_bindings.kACCEL)) then
+    if (dik_to_bind(key) == key_bindings.kACCEL) then
         -- If this is a programmatic action, skip progressive stance logic
         -- Game engine will still toggle walk state regardless of return value
         if state.fixing_same_frame_prone then
@@ -502,7 +502,7 @@ function on_key_press(key)
     end
 
     -- Sprint cancels prone
-    if (key == bind_to_dik(stance_utils.get_sprint_key())) and prone_active then
+    if (dik_to_bind(key) == stance_utils.get_sprint_key()) and prone_active then
         if stance_utils.should_cancel_prone_for_sprint() then
             utils.debug_log("[PROGRESSIVE_STANCE] Sprint pressed while prone - canceling prone")
             toggle_prone()
@@ -558,14 +558,14 @@ function on_key_hold(key)
 
     -- Crouch hold - just track holding state
     -- Note: Timer-based approach handles all progressive transitions
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
         if not exiting_prone_via_crouch then
             state.holding_crouch = true
             if utils.is_modifier_key(key) then return true end
         end
         return true
     -- Walk hold (respects walk mode setting)
-    elseif (key == bind_to_dik(key_bindings.kACCEL)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcAccel") then
+    elseif (dik_to_bind(key) == key_bindings.kACCEL) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcAccel") then
         if exiting_prone_via_walk then
             -- Track that walk was held while exiting prone (for Hold+Toggle mode)
             walk_held_while_exiting = true
@@ -598,7 +598,7 @@ function on_key_release(key)
     end
 
     -- Handle quick tap when we were waiting for hold/tap decision
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and waiting_for_crouch_decision then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and waiting_for_crouch_decision then
         -- Clear holding state to prevent timer from triggering
         state.holding_crouch = false
 
@@ -615,7 +615,7 @@ function on_key_release(key)
             -- Toggle crouch off (stand up)
             if IsMoveState("mcCrouch") then
                 toggling_crouch_programmatically = true
-                level.press_action(bind_to_dik(key_bindings.kCROUCH))
+                level.press_action(key)
                 toggling_crouch_programmatically = false
                 -- Notify stance vignette of stance change
                 if holdortoggle_features_stance_vignette then
@@ -634,7 +634,7 @@ function on_key_release(key)
     end
 
     -- Crouch release
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and state.holding_crouch then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and state.holding_crouch then
         local time_since_exit = prone_exit_time and (time_global() - prone_exit_time) or 999999
         utils.debug_log("[PROGRESSIVE_STANCE] Crouch released, exiting_prone_via_crouch=" .. tostring(exiting_prone_via_crouch) .. ", crouch_held_after_prone_exit=" .. tostring(crouch_held_after_prone_exit) .. ", prone_active=" .. tostring(prone_active) .. ", mcCrouch=" .. tostring(IsMoveState("mcCrouch")) .. ", time_since_exit=" .. tostring(time_since_exit))
 
@@ -647,7 +647,7 @@ function on_key_release(key)
         if exiting_prone_via_crouch and crouch_held_after_prone_exit and IsMoveState("mcCrouch") then
             utils.debug_log("[PROGRESSIVE_STANCE] Crouch held after prone exit - standing up on release (shouldn't happen if timer worked)")
             toggling_crouch_programmatically = true
-            level.press_action(bind_to_dik(key_bindings.kCROUCH))
+            level.press_action(key)
             toggling_crouch_programmatically = false
         -- Don't toggle off if: exiting prone via crouch (within 200ms), OR prone is still active, OR in the middle of a hold sequence from standing
         elseif not (exiting_prone_via_crouch and time_since_exit < 200) and not prone_active and not crouch_hold_started and IsMoveState("mcCrouch") then
@@ -655,7 +655,7 @@ function on_key_release(key)
             if not crouch_hold_transitioned then
                 utils.debug_log("[PROGRESSIVE_STANCE] Toggling crouch OFF")
                 toggling_crouch_programmatically = true
-                level.press_action(bind_to_dik(key_bindings.kCROUCH))
+                level.press_action(key)
                 toggling_crouch_programmatically = false
                 -- Notify stance vignette of stance change
                 if holdortoggle_features_stance_vignette then
@@ -674,7 +674,7 @@ function on_key_release(key)
         crouch_held_after_prone_exit = false
         utils.holdfix()
         return true
-    elseif (key == bind_to_dik(key_bindings.kCROUCH)) and exiting_prone_via_crouch then
+    elseif (dik_to_bind(key) == key_bindings.kCROUCH) and exiting_prone_via_crouch then
         -- Cancel the hold timers
         RemoveTimeEvent("progressive_stance", "check_prone_hold")
         RemoveTimeEvent("progressive_stance", "check_standup_hold")
@@ -686,7 +686,7 @@ function on_key_release(key)
             utils.debug_log("[PROGRESSIVE_STANCE] Crouch release after exiting prone - prone is off, allowing toggle")
             if IsMoveState("mcCrouch") then
                 toggling_crouch_programmatically = true
-                level.press_action(bind_to_dik(key_bindings.kCROUCH))
+                level.press_action(key)
                 toggling_crouch_programmatically = false
             end
         end
@@ -697,7 +697,7 @@ function on_key_release(key)
     end
 
     -- Walk release
-    if (key == bind_to_dik(key_bindings.kACCEL)) and state.holding_walk then
+    if (dik_to_bind(key) == key_bindings.kACCEL) and state.holding_walk then
         local time_since_exit = prone_exit_time and (time_global() - prone_exit_time) or 999999
         utils.debug_log("[PROGRESSIVE_STANCE] Walk released, exiting_prone_via_walk=" .. tostring(exiting_prone_via_walk) .. ", prone_active=" .. tostring(prone_active) .. ", mcAccel=" .. tostring(IsMoveState("mcAccel")) .. ", time_since_exit=" .. tostring(time_since_exit))
 
@@ -728,7 +728,7 @@ function on_key_release(key)
         end
 
         if should_toggle_off then
-            level.press_action(bind_to_dik(key_bindings.kACCEL))
+            level.press_action(key)
             -- Notify stance vignette of stance change
             if holdortoggle_features_stance_vignette then
                 holdortoggle_features_stance_vignette.on_stance_change()
@@ -740,14 +740,14 @@ function on_key_release(key)
         walk_held_while_exiting = false
         utils.holdfix()
         return true
-    elseif (key == bind_to_dik(key_bindings.kACCEL)) and exiting_prone_via_walk then
+    elseif (dik_to_bind(key) == key_bindings.kACCEL) and exiting_prone_via_walk then
         -- Check if prone is still active
         if prone_active then
             utils.debug_log("[PROGRESSIVE_STANCE] Quick walk release after exiting prone - not toggling (prone still active)")
         else
             utils.debug_log("[PROGRESSIVE_STANCE] Walk release after exiting prone - prone is off, allowing toggle")
             if IsMoveState("mcAccel") then
-                level.press_action(bind_to_dik(key_bindings.kACCEL))
+                level.press_action(key)
             end
         end
         exiting_prone_via_walk = false

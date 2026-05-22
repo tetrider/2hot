@@ -49,7 +49,7 @@ end
 
 function on_key_press(key)
     -- Inventory key press
-    if (key == bind_to_dik(key_bindings.kINVENTORY)) then
+    if (dik_to_bind(key) == key_bindings.kINVENTORY) then
         utils.debug_log("[HOT_INV] on_key_press: inventory key pressed, hot_inventory=" .. tostring(hot_inventory))
         state.inventoring = true
 
@@ -61,7 +61,7 @@ end
 
 function on_key_hold(key)
     -- Inventory key hold
-    if (key == bind_to_dik(key_bindings.kINVENTORY)) and ui_mcm.key_hold("holdortoggle", key) and hot_inventory then
+    if (dik_to_bind(key) == key_bindings.kINVENTORY) and ui_mcm.key_hold("holdortoggle", key) and hot_inventory then
         utils.debug_log("[HOT_INV] on_key_hold: inventory key held")
         state.holding_inventory = true
     end
@@ -69,7 +69,7 @@ end
 
 function on_key_release(key)
     -- Inventory key release
-    if (key == bind_to_dik(key_bindings.kINVENTORY)) and hot_inventory then
+    if (dik_to_bind(key) == key_bindings.kINVENTORY) and hot_inventory then
         utils.debug_log("[HOT_INV] on_key_release: inventory key released, holding_inventory=" .. tostring(state.holding_inventory) .. ", inventoring=" .. tostring(state.inventoring))
 
         -- Skip inventory logic if QAW was just closed

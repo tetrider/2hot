@@ -121,7 +121,7 @@ local last_recursion_key = nil
 -- Key press handler
 function on_key_press(key)
     -- Check for crouch press in inventory (movement blocking)
-    if key == bind_to_dik(key_bindings.kCROUCH) then
+    if dik_to_bind(key) == key_bindings.kCROUCH then
         inventory.on_crouch_press()
     end
 
@@ -129,13 +129,14 @@ function on_key_press(key)
     recursion_counter = recursion_counter + 1
 
     local key_name = "UNKNOWN"
-    if key == bind_to_dik(key_bindings.kCROUCH) then
+    local key_bind = dik_to_bind(key)
+    if key_bind == key_bindings.kCROUCH then
         key_name = "CROUCH"
-    elseif key == bind_to_dik(key_bindings.kACCEL) then
+    elseif key_bind == key_bindings.kACCEL then
         key_name = "WALK"
-    elseif key == bind_to_dik(stance_utils.get_sprint_key()) then
+    elseif key_bind == stance_utils.get_sprint_key() then
         key_name = "SPRINT"
-    elseif key == bind_to_dik(key_bindings.kWPN_RELOAD) then
+    elseif key_bind == key_bindings.kWPN_RELOAD then
         key_name = "RELOAD"
     end
 
@@ -205,7 +206,7 @@ end
 -- Key release handler
 function on_key_release(key)
     -- Check for crouch release in inventory (movement blocking)
-    if key == bind_to_dik(key_bindings.kCROUCH) then
+    if dik_to_bind(key) == key_bindings.kCROUCH then
         inventory.on_crouch_release()
     end
 

@@ -32,11 +32,11 @@ function on_key_press(key)
 
     -- Track lean press for Hold mode (0)
     -- For Hold mode, immediately mark as holding to mimic hold behavior
-    if (key == bind_to_dik(key_bindings.kL_LOOKOUT)) then
+    if (dik_to_bind(key) == key_bindings.kL_LOOKOUT) then
         if hot_lean == 0 then
             state.holding_lean_left = true
         end
-    elseif (key == bind_to_dik(key_bindings.kR_LOOKOUT)) then
+    elseif (dik_to_bind(key) == key_bindings.kR_LOOKOUT) then
         if hot_lean == 0 then
             state.holding_lean_right = true
         end
@@ -45,7 +45,7 @@ function on_key_press(key)
     -- QoL feature: In Toggle/Hold+Toggle mode, tapping opposite lean cancels current lean instead of switching
     if opposite_lean_cancel and (hot_lean == 1 or hot_lean == 2) then
         -- If pressing lean left while lean right is active
-        if (key == bind_to_dik(key_bindings.kL_LOOKOUT)) and IsMoveState("mcRLookout") then
+        if (dik_to_bind(key) == key_bindings.kL_LOOKOUT) and IsMoveState("mcRLookout") then
             -- In Hold+Toggle mode, don't cancel if right lean is being held (allow switching)
             if hot_lean == 2 and state.holding_lean_right then
                 utils.debug_log("[LEAN] on_key_press: right lean is held, allowing switch to left")
@@ -62,7 +62,7 @@ function on_key_press(key)
         end
 
         -- If pressing lean right while lean left is active
-        if (key == bind_to_dik(key_bindings.kR_LOOKOUT)) and IsMoveState("mcLLookout") then
+        if (dik_to_bind(key) == key_bindings.kR_LOOKOUT) and IsMoveState("mcLLookout") then
             -- In Hold+Toggle mode, don't cancel if left lean is being held (allow switching)
             if hot_lean == 2 and state.holding_lean_left then
                 utils.debug_log("[LEAN] on_key_press: left lean is held, allowing switch to right")
@@ -85,14 +85,14 @@ function on_key_hold(key)
 
     -- Lean hold
     -- For Hold+Toggle mode (2), track when key passes hold threshold
-    if (key == bind_to_dik(key_bindings.kL_LOOKOUT)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcLLookout") then
+    if (dik_to_bind(key) == key_bindings.kL_LOOKOUT) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcLLookout") then
         -- Only set holding for Hold+Toggle mode (2)
         -- Hold mode (0) already set it in on_key_press
         if hot_lean == 2 then
             state.holding_lean_left = true
         end
         if is_modifier then return end
-    elseif (key == bind_to_dik(key_bindings.kR_LOOKOUT)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcRLookout") then
+    elseif (dik_to_bind(key) == key_bindings.kR_LOOKOUT) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcRLookout") then
         -- Only set holding for Hold+Toggle mode (2)
         -- Hold mode (0) already set it in on_key_press
         if hot_lean == 2 then
@@ -103,14 +103,14 @@ function on_key_hold(key)
 end
 
 function on_key_release(key)
-    if (key == bind_to_dik(key_bindings.kL_LOOKOUT)) and state.holding_lean_left then
+    if (dik_to_bind(key) == key_bindings.kL_LOOKOUT) and state.holding_lean_left then
         if IsMoveState("mcLLookout") then
-            level.press_action(bind_to_dik(key_bindings.kL_LOOKOUT))
+            level.press_action(key)
         end
         state.holding_lean_left = false
-    elseif (key == bind_to_dik(key_bindings.kR_LOOKOUT)) and state.holding_lean_right then
+    elseif (dik_to_bind(key) == key_bindings.kR_LOOKOUT) and state.holding_lean_right then
         if IsMoveState("mcRLookout") then
-            level.press_action(bind_to_dik(key_bindings.kR_LOOKOUT))
+            level.press_action(key)
         end
         state.holding_lean_right = false
     end

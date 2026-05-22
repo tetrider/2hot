@@ -163,7 +163,7 @@ end
 
 function on_key_press(key)
     -- Sprint cancels lean, aim, and prone toggles
-    if (key == bind_to_dik(stance_utils.get_sprint_key())) then
+    if (dik_to_bind(key) == stance_utils.get_sprint_key()) then
         -- Only cancel actions if hot_sprint_cancel is disabled OR player is moving forward
         if not hot_sprint_cancel or IsMoveState("mcFwd") then
             if not (state.holding_lean_left or state.holding_lean_right) then
@@ -188,7 +188,7 @@ function on_key_press(key)
     end
 
     -- Track crouch press for Hold mode (only if no stance system is handling it)
-    if (key == bind_to_dik(key_bindings.kCROUCH)) then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) then
         if not state.active_stance_system or not state.active_stance_system.is_handling_crouch() then
             -- For Hold mode (0), immediately mark as holding to mimic hold behavior
             if hot_crouch == 0 then
@@ -202,7 +202,7 @@ function on_key_press(key)
     end
 
     -- Track walk press for Hold mode (only if no stance system is handling it)
-    if (key == bind_to_dik(key_bindings.kACCEL)) then
+    if (dik_to_bind(key) == key_bindings.kACCEL) then
         if not state.active_stance_system or not state.active_stance_system.is_handling_walk() then
             -- For Hold mode (0), immediately mark as holding to mimic hold behavior
             if hot_walk == 0 then
@@ -219,11 +219,11 @@ function on_key_press(key)
     -- This allows tracking even when sprint is blocked by hot_sprint_cancel
 
     -- Dirty move check
-    if (key == bind_to_dik(key_bindings.kFWD)) or (key == bind_to_dik(key_bindings.kBACK)) then
+    if (dik_to_bind(key) == key_bindings.kFWD) or (dik_to_bind(key) == key_bindings.kBACK) then
         state.moving = true
 
         -- Try to activate sprint on forward key press (if holding sprint)
-        if key == bind_to_dik(key_bindings.kFWD) and
+        if dik_to_bind(key) == key_bindings.kFWD and
            (hot_sprint == 0 or hot_sprint == 2) and
            (state.holding_sprint or state.sprint_key_down) and
            not IsMoveState("mcSprint") then
@@ -237,7 +237,7 @@ function on_key_hold(key)
 
     -- Crouch hold (only if no stance system is handling it)
     -- For Hold+Toggle mode (2), track when key passes hold threshold
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcCrouch") then
         if not state.active_stance_system or not state.active_stance_system.is_handling_crouch() then
             -- Only set holding for Hold+Toggle mode (2)
             -- Hold mode (0) already set it in on_key_press
@@ -248,7 +248,7 @@ function on_key_hold(key)
         end
     -- Walk hold (only if no stance system is handling it)
     -- For Hold+Toggle mode (2), track when key passes hold threshold
-    elseif (key == bind_to_dik(key_bindings.kACCEL)) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcAccel") then
+    elseif (dik_to_bind(key) == key_bindings.kACCEL) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcAccel") then
         if not state.active_stance_system or not state.active_stance_system.is_handling_walk() then
             -- Only set holding for Hold+Toggle mode (2)
             -- Hold mode (0) already set it in on_key_press
@@ -259,7 +259,7 @@ function on_key_hold(key)
         end
     -- Sprint hold
     -- For Hold+Toggle mode (2), track when key passes hold threshold
-    elseif (key == bind_to_dik(stance_utils.get_sprint_key())) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcSprint") then
+    elseif (dik_to_bind(key) == stance_utils.get_sprint_key()) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcSprint") then
         -- For Hold+Toggle mode (2): Mark as holding after threshold (distinguishes hold from tap)
         -- Hold mode (0) already set it in on_before_key_press
         if hot_sprint == 2 then
@@ -272,10 +272,10 @@ end
 
 function on_key_release(key)
     -- Crouch release (only if no stance system is handling it)
-    if (key == bind_to_dik(key_bindings.kCROUCH)) and state.holding_crouch then
+    if (dik_to_bind(key) == key_bindings.kCROUCH) and state.holding_crouch then
         if not state.active_stance_system or not state.active_stance_system.is_handling_crouch() then
             if IsMoveState("mcCrouch") then
-                level.press_action(bind_to_dik(key_bindings.kCROUCH))
+                level.press_action(key)
             end
             state.holding_crouch = false
             utils.holdfix()
@@ -285,10 +285,10 @@ function on_key_release(key)
             end
         end
     -- Walk release (only if no stance system is handling it)
-    elseif (key == bind_to_dik(key_bindings.kACCEL)) and state.holding_walk then
+    elseif (dik_to_bind(key) == key_bindings.kACCEL) and state.holding_walk then
         if not state.active_stance_system or not state.active_stance_system.is_handling_walk() then
             if IsMoveState("mcAccel") then
-                level.press_action(bind_to_dik(key_bindings.kACCEL))
+                level.press_action(key)
             end
             state.holding_walk = false
             utils.holdfix()
@@ -298,13 +298,13 @@ function on_key_release(key)
             end
         end
     -- Sprint release
-    elseif (key == bind_to_dik(stance_utils.get_sprint_key())) then
+    elseif (dik_to_bind(key) == stance_utils.get_sprint_key()) then
         utils.debug_log("[MOVEMENT_BASE] on_key_release: sprint released - hot_sprint=" .. tostring(hot_sprint) .. ", holding_sprint=" .. tostring(state.holding_sprint) .. ", sprint_key_was_blocked=" .. tostring(sprint_key_was_blocked))
 
         if hot_sprint == 0 then
             -- Hold mode: always deactivate if sprinting
             if state.holding_sprint and IsMoveState("mcSprint") then
-                level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                level.press_action(key)
                 utils.debug_log("[MOVEMENT_BASE] on_key_release: deactivating sprint (Hold mode)")
             end
         elseif hot_sprint == 2 then
@@ -314,12 +314,12 @@ function on_key_release(key)
             if state.holding_sprint then
                 -- Was held past threshold, deactivate
                 if IsMoveState("mcSprint") then
-                    level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                    level.press_action(key)
                     utils.debug_log("[MOVEMENT_BASE] on_key_release: deactivating sprint (held)")
                 end
             elseif state.sprint_key_down and sprint_key_was_blocked and IsMoveState("mcSprint") then
                 -- Was tapped while sprinting AND key was blocked (didn't reach game), manually toggle off
-                level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                level.press_action(key)
                 utils.debug_log("[MOVEMENT_BASE] on_key_release: toggling sprint off (tapped, was blocked)")
             end
             -- else: tapped and key wasn't blocked, game already handled toggle
@@ -346,7 +346,7 @@ function on_key_release(key)
             sprint_key_was_blocked = false
         end
     -- Movement release
-    elseif (key == bind_to_dik(key_bindings.kFWD)) or (key == bind_to_dik(key_bindings.kBACK)) then
+    elseif (dik_to_bind(key) == key_bindings.kFWD) or (dik_to_bind(key) == key_bindings.kBACK) then
         state.moving = false
     end
 end
