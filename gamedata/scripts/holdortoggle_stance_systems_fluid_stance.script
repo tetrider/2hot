@@ -258,6 +258,11 @@ function on_key_press(key)
             cancel_opposite_stance("mcAccel", key_bindings.kACCEL, "canceling_walk", "crouch", "walk")
         end
 
+        -- Hold mode: immediately mark as holding (on_key_hold only fires after threshold)
+        if crouch_mode == 0 then
+            state.holding_crouch = true
+        end
+
         if holdortoggle_features_stance_vignette then
             holdortoggle_features_stance_vignette.on_stance_change()
         end
@@ -279,6 +284,11 @@ function on_key_press(key)
 
         if not state.canceling_walk then
             cancel_opposite_stance("mcCrouch", key_bindings.kCROUCH, "canceling_crouch", "walk", "crouch")
+        end
+
+        -- Hold mode: immediately mark as holding (on_key_hold only fires after threshold)
+        if walk_mode == 0 then
+            state.holding_walk = true
         end
 
         if holdortoggle_features_stance_vignette then
