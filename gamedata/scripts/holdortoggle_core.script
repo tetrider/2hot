@@ -38,8 +38,8 @@ function initialize()
         kINVENTORY=kb.kINVENTORY, kACTIVE_JOBS=kb.kACTIVE_JOBS,
         kUSE=kb.kUSE, kQUICK_USE_1=kb.kQUICK_USE_1, kQUICK_USE_2=kb.kQUICK_USE_2,
         kQUICK_USE_3=kb.kQUICK_USE_3, kQUICK_USE_4=kb.kQUICK_USE_4,
+        kSPRINT_TOGGLE=kb.kSPRINT_TOGGLE,
     }
-    known["kSPRINT"] = stance_utils.get_sprint_key()
     for name, val in pairs(known) do
         if val then bind_name_map[val] = name end
     end

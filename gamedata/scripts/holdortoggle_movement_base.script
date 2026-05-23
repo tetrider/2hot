@@ -47,11 +47,11 @@ function start_autowalk_sprint_monitor()
 
                 if hot_sprint == 0 and not would_be_blocked then
                     state.allow_sprint_activation_from_forward = true
-                    level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                    level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
                     state.allow_sprint_activation_from_forward = false
                 elseif not would_be_blocked and sprint_key_was_blocked then
                     state.allow_sprint_activation_from_forward = true
-                    level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                    level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
                     state.allow_sprint_activation_from_forward = false
                 end
             end
@@ -116,7 +116,7 @@ local function try_activate_sprint_on_forward()
                 state.allow_sprint_activation_from_forward = true
                 state.preserve_sprint_flags = ads_is_active
 
-                level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
                 state.allow_sprint_activation_from_forward = false
 
                 -- If ADS is active, press sprint again after canceling ADS
@@ -125,7 +125,7 @@ local function try_activate_sprint_on_forward()
                         if (state.holding_sprint or state.sprint_key_down) and not IsMoveState("mcSprint") then
                             state.allow_sprint_activation_from_forward = true
                             state.preserve_sprint_flags = false
-                            level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                            level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
                             state.allow_sprint_activation_from_forward = false
                         end
                         return true
@@ -141,7 +141,7 @@ local function try_activate_sprint_on_forward()
 end
 
 function on_before_key_press(dik, bind, dis, flags)
-    if bind == stance_utils.get_sprint_key() then
+    if bind == key_bindings.kSPRINT_TOGGLE then
         -- For Hold mode (0): Set holding state immediately (actor_on_update controls activation)
         -- For Hold+Toggle mode (2): Set sprint_key_down to track press (holding_sprint set later in on_key_hold)
         if hot_sprint == 0 then
@@ -163,7 +163,7 @@ end
 
 function on_key_press(key)
     -- Sprint cancels lean, aim, and prone toggles
-    if (dik_to_bind(key) == stance_utils.get_sprint_key()) then
+    if (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) then
         -- Only cancel actions if hot_sprint_cancel is disabled OR player is moving forward
         if not hot_sprint_cancel or IsMoveState("mcFwd") then
             if not (state.holding_lean_left or state.holding_lean_right) then
@@ -255,7 +255,7 @@ function on_key_hold(key)
         end
     -- Sprint hold
     -- For Hold+Toggle mode (2), track when key passes hold threshold
-    elseif (dik_to_bind(key) == stance_utils.get_sprint_key()) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcSprint") then
+    elseif (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) and ui_mcm.key_hold("holdortoggle", key) and IsMoveState("mcSprint") then
         -- For Hold+Toggle mode (2): Mark as holding after threshold (distinguishes hold from tap)
         -- Hold mode (0) already set it in on_before_key_press
         if hot_sprint == 2 then
@@ -293,7 +293,7 @@ function on_key_release(key)
             end
         end
     -- Sprint release
-    elseif (dik_to_bind(key) == stance_utils.get_sprint_key()) then
+    elseif (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) then
         utils.debug_log("[MOVEMENT_BASE] on_key_release: sprint released - hot_sprint=" .. tostring(hot_sprint) .. ", holding_sprint=" .. tostring(state.holding_sprint) .. ", sprint_key_was_blocked=" .. tostring(sprint_key_was_blocked))
 
         if hot_sprint == 0 then

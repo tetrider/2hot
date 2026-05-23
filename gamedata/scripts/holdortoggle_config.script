@@ -238,6 +238,12 @@ function on_option_change()
 
     -- Refresh toggle settings from game options
     state.refresh_toggle_settings()
+    -- All toggles are always forced ON by this mod; ui_options won't reflect the console commands
+    state.is_crouch_toggled = true
+    state.is_walk_toggled = true
+    state.is_sprint_toggled = true
+    state.is_leaning_toggled = true
+    state.is_aiming_toggled = true
 
     utils.debug_log("[CONFIG] Final game toggle states - crouch: " .. tostring(state.is_crouch_toggled) .. ", walk: " .. tostring(state.is_walk_toggled) .. ", sprint: " .. tostring(state.is_sprint_toggled))
 

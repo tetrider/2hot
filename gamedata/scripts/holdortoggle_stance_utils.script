@@ -5,11 +5,6 @@
 local utils = holdortoggle_utils
 local state = holdortoggle_state
 
--- Helper function to get the correct sprint key binding based on toggle setting
-function get_sprint_key()
-    return state.is_sprint_toggled and key_bindings.kSPRINT_TOGGLE or key_bindings.kSPRINT
-end
-
 -- Generic prone toggle state logic
 -- Returns: new_prone_active, should_cleanup
 -- Parameters:

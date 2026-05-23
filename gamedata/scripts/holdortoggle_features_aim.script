@@ -324,7 +324,7 @@ function on_key_release(key)
             if (state.holding_sprint or state.sprint_key_down) and not IsMoveState("mcSprint") and IsMoveState("mcFwd") then
                 CreateTimeEvent("holdortoggle_aim", "reactivate_sprint_after_aim", 0.05, function()
                     if (state.holding_sprint or state.sprint_key_down) and not IsMoveState("mcSprint") and IsMoveState("mcFwd") then
-                        level.press_action(bind_to_dik(stance_utils.get_sprint_key()))
+                        level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
                     end
                     return true
                 end)

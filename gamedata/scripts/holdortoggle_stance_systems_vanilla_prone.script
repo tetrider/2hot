@@ -101,7 +101,7 @@ function on_key_press(key)
     end
 
     -- Sprint cancels prone (for consistency with other systems)
-    if (dik_to_bind(key) == stance_utils.get_sprint_key()) and prone_active then
+    if (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) and prone_active then
         if stance_utils.should_cancel_prone_for_sprint() then
             utils.debug_log("[VANILLA_PRONE] Sprint pressed while prone - canceling prone")
             toggle_prone()

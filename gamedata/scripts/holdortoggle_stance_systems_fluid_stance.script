@@ -237,7 +237,7 @@ function on_key_press(key)
         if (dik_to_bind(key) == key_bindings.kCROUCH) or
            (dik_to_bind(key) == key_bindings.kACCEL) or
            (key == pronekey) or
-           (dik_to_bind(key) == stance_utils.get_sprint_key()) then
+           (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) then
             return true  -- Block all stance keys during prone toggle
         end
     end
@@ -299,7 +299,7 @@ function on_key_press(key)
     end
 
     -- Sprint cancels prone
-    if (dik_to_bind(key) == stance_utils.get_sprint_key()) and prone_active then
+    if (dik_to_bind(key) == key_bindings.kSPRINT_TOGGLE) and prone_active then
         if stance_utils.should_cancel_prone_for_sprint() then
             utils.debug_log("[FLUID_STANCE] Sprint pressed while prone - canceling prone")
             toggle_prone()
