@@ -132,6 +132,9 @@ function on_before_key_press(dik, bind, dis, flags)
         return true
     end
 
+    -- Aim (side-effects only: bolt_cycle compatibility, never blocks)
+    aim.on_before_key_press(dik, bind, dis, flags)
+
     return false
 end
 

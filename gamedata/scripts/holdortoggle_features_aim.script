@@ -23,7 +23,75 @@ function update_options()
     aim_toggle_disabled = false
 end
 
+-- bolt_cycle_hold compatibility: blocks zoom key presses during bolt cycle animation,
+-- queuing them for after the animation ends. If we call level.press_action(zoom) to
+-- deactivate aim, bolt_cycle blocks it then re-activates aim when the cycle ends.
+-- Instead, poll until pending_cycle_anim is false, then deactivate via level.press_action
+-- with a suppression flag so on_key_press doesn't re-activate aim for our own synthetic press.
+local bolt_cycle_deactivating_aim = false
+
+local function is_bolt_cycling()
+    return _G.bolt_cycle_hold and _G.bolt_cycle_hold.pending_cycle_anim == true
+end
+
+local function schedule_aim_activate_after_bolt_cycle()
+    local zoom_dik = bind_to_dik(key_bindings.kWPN_ZOOM)
+    -- Clear bolt_cycle's queued zoom to prevent double-activation when cycle ends
+    if _G.bolt_cycle_hold and _G.bolt_cycle_hold.action_queue then
+        _G.bolt_cycle_hold.action_queue[key_bindings.kWPN_ZOOM] = nil
+    end
+    CreateTimeEvent("holdortoggle_aim_bolt_compat", "activate_after_cycle", 0.05, function()
+        if _G.bolt_cycle_hold then
+            if _G.bolt_cycle_hold.action_queue then
+                _G.bolt_cycle_hold.action_queue[key_bindings.kWPN_ZOOM] = nil
+            end
+            if _G.bolt_cycle_hold.pending_cycle_anim then
+                return false
+            end
+        end
+        -- Only activate if player still holds aim key and weapon is not already zoomed
+        if key_state(zoom_dik) ~= 0 and not axr_main.weapon_is_zoomed then
+            utils.debug_log("[AIM] bolt_cycle compat: activating aim after cycle end")
+            level.press_action(zoom_dik)
+        end
+        return true
+    end)
+end
+
+local function schedule_aim_deactivate_after_bolt_cycle()
+    -- Immediately clear any queued zoom press so bolt_cycle doesn't fire it on cycle end
+    if _G.bolt_cycle_hold and _G.bolt_cycle_hold.action_queue then
+        _G.bolt_cycle_hold.action_queue[key_bindings.kWPN_ZOOM] = nil
+    end
+    -- Poll every 50ms until cycle ends, then deactivate aim properly
+    CreateTimeEvent("holdortoggle_aim_bolt_compat", "deactivate_after_cycle", 0.05, function()
+        if _G.bolt_cycle_hold then
+            if _G.bolt_cycle_hold.action_queue then
+                _G.bolt_cycle_hold.action_queue[key_bindings.kWPN_ZOOM] = nil
+            end
+            if _G.bolt_cycle_hold.pending_cycle_anim then
+                return false -- still cycling, poll again
+            end
+        end
+        if axr_main.weapon_is_zoomed then
+            bolt_cycle_deactivating_aim = true
+            level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))
+            bolt_cycle_deactivating_aim = false
+            utils.debug_log("[AIM] bolt_cycle compat: deactivated aim after cycle end")
+        end
+        return true
+    end)
+end
+
 function on_before_key_press(dik, bind, dis, flags)
+    -- on_before_key_press always fires even when bolt_cycle blocks the key.
+    -- Schedule aim activation here so it fires regardless of on_key_press being suppressed.
+    if bind == key_bindings.kWPN_ZOOM
+    and hot_aim == 0
+    and is_bolt_cycling()
+    and not axr_main.weapon_is_zoomed then
+        schedule_aim_activate_after_bolt_cycle()
+    end
     return false
 end
 
@@ -32,6 +100,8 @@ function on_key_press(key)
         -- Skip when fluid_aim is pressing zoom internally (equip scheduling) to prevent
         -- it from cancelling the tap-clear timer and causing aim to carry over to new weapons
         if _G.fluid_aim_internal_press then return end
+        -- Skip when we're pressing zoom ourselves to deactivate aim after bolt cycle ends
+        if bolt_cycle_deactivating_aim then return end
         utils.debug_log("[AIM] key_press: hot_aim=" .. tostring(hot_aim) .. " is_zoomed=" .. tostring(axr_main.weapon_is_zoomed))
 
         -- Pump-action reload interrupt: If in reload state, signal to wait for shell load then aim
@@ -93,6 +163,10 @@ function on_key_press(key)
             end
         end
         if hot_aim == 0 then
+            if is_bolt_cycling() and not axr_main.weapon_is_zoomed then
+                schedule_aim_activate_after_bolt_cycle()  -- idempotent if already scheduled in on_before_key_press
+                return
+            end
             state.holding_aim = true
             state.aim_key_down = true
             -- Disable wpn_aim_toggle to prevent engine toggle behavior in Hold mode
@@ -201,7 +275,10 @@ function on_key_release(key)
             get_console():execute("wpn_aim_toggle on")
             aim_toggle_disabled = false
             utils.debug_log("[AIM] key_release: Hold mode - wpn_aim_toggle=on")
-            if state.holding_aim and axr_main.weapon_is_zoomed then
+            if state.holding_aim and is_bolt_cycling() then
+                utils.debug_log("[AIM] key_release: Hold mode - bolt cycling, scheduling deactivate after cycle")
+                schedule_aim_deactivate_after_bolt_cycle()
+            elseif state.holding_aim and axr_main.weapon_is_zoomed then
                 utils.debug_log("[AIM] key_release: Hold mode - pressing zoom to deactivate")
                 level.press_action(key)
             end
@@ -217,7 +294,11 @@ function on_key_release(key)
                 utils.debug_log("[AIM] key_release: Hold+Toggle mode - wpn_aim_toggle=on")
                 if axr_main.weapon_is_zoomed then
                     utils.debug_log("[AIM] key_release: Hold+Toggle mode - pressing zoom to deactivate")
-                    level.press_action(key)
+                    if is_bolt_cycling() then
+                        schedule_aim_deactivate_after_bolt_cycle()
+                    else
+                        level.press_action(key)
+                    end
 
                     -- If fire button still held, re-press it after zoom deactivates (only for full-auto weapons)
                     local fire_state = key_state(bind_to_dik(key_bindings.kWPN_FIRE))

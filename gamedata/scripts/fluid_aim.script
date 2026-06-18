@@ -515,7 +515,7 @@ local function actor_on_update()
                     end
                 end
             else
-                debug_log("[FIRE] Fire held in idle (single/burst mode fire_mode=" .. tostring(fire_mode) .. ") - not counting as jam")
+                -- debug_log("[FIRE] Fire held in idle (single/burst mode fire_mode=" .. tostring(fire_mode) .. ") - not counting as jam")
             end
         elseif state ~= 0 or not fluid_aim_fire then
             -- Reset counter when fire released or state changes
