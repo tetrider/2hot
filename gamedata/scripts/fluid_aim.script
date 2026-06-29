@@ -192,6 +192,10 @@ local pump_reload_cancel_enabled = false
 local pump_reload_cancel_modifier = 0.1  -- fraction of reload animation length for the cancel window
 local pump_reload_cancel_ready = {}  -- tracks which weapons are ready to fire after pump reload (wpn_id -> true)
 local pump_reload_prev_ammo = {}  -- separate ammo tracking for pump-action reload cancel (wpn_id -> ammo_count)
+local pump_reload_got_shell = {}  -- set to true when ammo actually increases during pump reload (wpn_id -> true)
+local pump_reload_fire_suppressed = {}  -- fire was pressed during anm_open before shell loads (wpn_id -> true)
+local pump_reload_in_open_phase = {}   -- true while anm_open animation is active (not anm_add_cartridge)
+local pump_reload_shell_version = {}   -- incremented each anm_add_cartridge start; timers check version to prevent stale cancel_ready
 
 -- Aim reload cancel settings
 local mag_reload_aim_ready = {}  -- tracks which weapons are ready to aim after mag reload (wpn_id -> true)
@@ -438,6 +442,10 @@ local function actor_on_update()
                 mag_reload_prev_ammo[fluid_aim_current_wpn_id] = nil
                 pump_reload_cancel_ready[fluid_aim_current_wpn_id] = nil
                 pump_reload_prev_ammo[fluid_aim_current_wpn_id] = nil
+                pump_reload_got_shell[fluid_aim_current_wpn_id] = nil
+                pump_reload_fire_suppressed[fluid_aim_current_wpn_id] = nil
+                pump_reload_in_open_phase[fluid_aim_current_wpn_id] = nil
+                pump_reload_shell_version[fluid_aim_current_wpn_id] = nil
             end
             fluid_aim_current_wpn_id = wpn_id
             -- Inherit this weapon's known jam state so we don't fire into a previously-jammed weapon
@@ -1131,23 +1139,51 @@ local function actor_on_update()
                             -- Ammo increased - shell finished loading
                             local delta = cur_ammo - prev_pump_ammo
                             debug_log("[PUMP_CANCEL] Ammo increased: wpn_id=" .. tostring(wpn_id) .. " prev=" .. tostring(prev_pump_ammo) .. " cur=" .. tostring(cur_ammo) .. " delta=" .. tostring(delta))
-                            if not pump_reload_cancel_ready[wpn_id] then
+                            if pump_reload_cancel_ready[wpn_id] then
+                                -- Already ready to fire (previous shell): just advance tracking for next shell
+                                pump_reload_prev_ammo[wpn_id] = cur_ammo
+                            else
                                 ensure_reload_anim_length(wpn)
                                 local reload_len = fluid_aim_reload_anim_length[wpn_id]
                                 local pump_cancel_delay = reload_len and (reload_len * pump_reload_cancel_modifier) or 0.2
-                                debug_log("[PUMP_CANCEL] Shell loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(pump_cancel_delay) .. "s (anim=" .. tostring(reload_len) .. "s * " .. tostring(pump_reload_cancel_modifier) .. ")")
                                 local wpn_id_capture = wpn_id
-                                CreateTimeEvent("pump_reload_cancel", "pump_" .. tostring(wpn_id), pump_cancel_delay, function()
-                                    -- Only set ready if this reload is still being tracked (prevent late fire after cleanup)
-                                    if pump_reload_prev_ammo[wpn_id_capture] ~= nil then
-                                        pump_reload_cancel_ready[wpn_id_capture] = true
-                                        pump_reload_aim_ready[wpn_id_capture] = true
-                                    end
-                                    debug_log("[PUMP_CANCEL] Cancel window expired, weapon can fire or aim: wpn_id=" .. tostring(wpn_id_capture))
-                                    return true
-                                end)
+                                local was_suppressed = pump_reload_fire_suppressed[wpn_id]
+                                local fire_held = fluid_aim_fire or was_suppressed
+                                if fire_held then
+                                    -- Fire held (or was suppressed during anm_open): close immediately, fire after delay
+                                    pump_reload_fire_suppressed[wpn_id] = nil  -- consumed
+                                    debug_log("[PUMP_CANCEL] Shell loaded+fire held (suppressed=" .. tostring(was_suppressed) .. "): closing now, firing after " .. tostring(pump_cancel_delay) .. "s (anim=" .. tostring(reload_len) .. "s * " .. tostring(pump_reload_cancel_modifier) .. ")")
+                                    wpn:switch_state(0)
+                                    fluid_aim_prev_reload_ammo = -1
+                                    pump_reload_prev_ammo[wpn_id] = nil  -- prevent cleanup from also firing
+                                    local commit_fire = was_suppressed  -- if fire was suppressed, commit unconditionally
+                                    CreateTimeEvent("pump_reload_cancel_fire", "pump_fire_" .. tostring(wpn_id), pump_cancel_delay, function()
+                                        local active = db.actor and db.actor:active_item()
+                                        if active and IsWeapon(active) and active:id() == wpn_id_capture and (commit_fire or fluid_aim_fire) then
+                                            fluid_aim_fire_queued = true
+                                            fluid_aim_reload_interrupted = true
+                                            debug_log("[PUMP_CANCEL] Fire delay expired: queuing fire for wpn_id=" .. tostring(wpn_id_capture))
+                                        end
+                                        return true
+                                    end)
+                                else
+                                    -- Fire not held: start cancel window so player can fire/aim during it
+                                    debug_log("[PUMP_CANCEL] Shell loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(pump_cancel_delay) .. "s (anim=" .. tostring(reload_len) .. "s * " .. tostring(pump_reload_cancel_modifier) .. ")")
+                                    local shell_version_capture = pump_reload_shell_version[wpn_id] or 0
+                                    CreateTimeEvent("pump_reload_cancel", "pump_" .. tostring(wpn_id), pump_cancel_delay, function()
+                                        -- Only set ready if reload is still tracked AND no new shell animation started since this timer was created
+                                        if pump_reload_prev_ammo[wpn_id_capture] ~= nil
+                                           and (pump_reload_shell_version[wpn_id_capture] or 0) == shell_version_capture then
+                                            pump_reload_cancel_ready[wpn_id_capture] = true
+                                            pump_reload_aim_ready[wpn_id_capture] = true
+                                        end
+                                        debug_log("[PUMP_CANCEL] Cancel window expired, weapon can fire or aim: wpn_id=" .. tostring(wpn_id_capture))
+                                        return true
+                                    end)
+                                    pump_reload_prev_ammo[wpn_id] = cur_ammo
+                                    pump_reload_got_shell[wpn_id] = true  -- shell was actually loaded
+                                end
                             end
-                            pump_reload_prev_ammo[wpn_id] = cur_ammo
                         end
                     end
                 end
@@ -1158,6 +1194,8 @@ local function actor_on_update()
                     wpn:switch_state(0)
                     fluid_aim_fire_queued = true
                     pump_reload_cancel_ready[wpn_id] = nil
+                    pump_reload_prev_ammo[wpn_id] = nil  -- prevent cleanup elseif from double-firing
+                    pump_reload_got_shell[wpn_id] = nil
                     fluid_aim_prev_reload_ammo = -1  -- prevent pump-action fallback from re-queuing on next frame
                 end
 
@@ -1179,19 +1217,33 @@ local function actor_on_update()
 
                 -- Reset tracking when exiting reload state (always clear both tracking and ready flags)
                 if state ~= 7 then
-                    if pump_reload_cancel_enabled and fluid_aim_fire and not is_weapon_jammed(wpn_id) then
+                    local fire_or_suppressed = fluid_aim_fire or pump_reload_fire_suppressed[wpn_id]
+                    if pump_reload_cancel_enabled and fire_or_suppressed and not is_weapon_jammed(wpn_id) then
                         if pump_reload_cancel_ready[wpn_id] then
                             -- Cancel window had expired, fire now
                             fluid_aim_fire_queued = true
                             fluid_aim_reload_interrupted = true
                             fluid_aim_prev_reload_ammo = -1
                             debug_log("[PUMP_CANCEL] Reload ended with cancel ready+fire held: firing")
-                        elseif pump_reload_prev_ammo[wpn_id] ~= nil then
-                            -- Reload ended before cancel window, fire immediately
+                        elseif pump_reload_prev_ammo[wpn_id] ~= nil and pump_reload_got_shell[wpn_id] then
+                            -- Reload ended before cancel window, shell was loaded, fire immediately
                             fluid_aim_fire_queued = true
                             fluid_aim_reload_interrupted = true
                             fluid_aim_prev_reload_ammo = -1
                             debug_log("[PUMP_CANCEL] Reload ended before cancel window+fire held: firing immediately")
+                        elseif pump_reload_fire_suppressed[wpn_id] and not pump_reload_got_shell[wpn_id] then
+                            -- Fire was suppressed during anm_open but reload still aborted (engine ignored suppression)
+                            -- Restart the reload so shell can load then fire
+                            local wpn_id_capture = wpn_id
+                            CreateTimeEvent("pump_reload_restart", "pump_restart_" .. tostring(wpn_id), 0.1, function()
+                                local active = db.actor and db.actor:active_item()
+                                if active and IsWeapon(active) and active:id() == wpn_id_capture
+                                   and active:get_state() == 0 then
+                                    level.press_action(bind_to_dik(key_bindings.kWPN_RELOAD))
+                                    debug_log("[PUMP_CANCEL] Fallback: restarting reload after pre-shell abort")
+                                end
+                                return true
+                            end)
                         end
                     end
                     if pump_reload_prev_ammo[wpn_id] or pump_reload_cancel_ready[wpn_id] or pump_reload_aim_ready[wpn_id] then
@@ -1200,6 +1252,10 @@ local function actor_on_update()
                     pump_reload_prev_ammo[wpn_id] = nil
                     pump_reload_cancel_ready[wpn_id] = nil
                     pump_reload_aim_ready[wpn_id] = nil
+                    pump_reload_got_shell[wpn_id] = nil
+                    pump_reload_fire_suppressed[wpn_id] = nil
+                    pump_reload_in_open_phase[wpn_id] = nil
+                    pump_reload_shell_version[wpn_id] = nil
                 end
 
             end
@@ -1248,7 +1304,22 @@ local function actor_on_weapon_jammed()
     end
 end
 
--- Key press to prevent toggle aim release from aiming instantly again
+local function on_before_key_press(key, bind, flags)
+    if bind == key_bindings.kWPN_FIRE then
+        local wpn = db.actor and db.actor:active_item()
+        if wpn and IsWeapon(wpn) then
+            local wpn_id = wpn:id()
+            if pump_reload_cancel_enabled and wpn:get_state() == 7
+               and is_weapon_pump_action(wpn) and pump_reload_in_open_phase[wpn_id]
+               and not pump_reload_got_shell[wpn_id] and not is_weapon_jammed(wpn_id) then
+                pump_reload_fire_suppressed[wpn_id] = true
+                if flags then flags.ret_value = true end  -- block key from reaching engine
+                debug_log("[PUMP_CANCEL] Fire key blocked during anm_open (no shell yet): wpn_id=" .. tostring(wpn_id) .. " flags=" .. tostring(flags ~= nil))
+            end
+        end
+    end
+end
+
 local function on_key_press(key)
     if (dik_to_bind(key) == key_bindings.kWPN_FIRE) then
         debug_log("[KEY] FIRE pressed: reset_fire_on_load=true -> false")
@@ -1274,6 +1345,8 @@ local function on_key_press(key)
                 wpn:switch_state(0)
                 fluid_aim_fire_queued = true
                 pump_reload_cancel_ready[wpn_id] = nil
+                pump_reload_prev_ammo[wpn_id] = nil  -- prevent cleanup elseif from double-firing
+                pump_reload_got_shell[wpn_id] = nil
             end
         end
     end
@@ -1337,11 +1410,22 @@ function actor_on_hud_animation_play(anm_table, item)
         debug_log("[ANIM_PLAY] draw: wpn_id=" .. tostring(wpn_id) .. " name=" .. tostring(anm_name) .. " length=" .. tostring(len) .. "s")
     else
         fluid_aim_reload_anim_length[wpn_id] = len
+        -- Track whether we're in the anm_open phase (before shell loads) vs anm_add_cartridge
+        if pump_reload_cancel_enabled and is_weapon_pump_action(item) then
+            pump_reload_in_open_phase[wpn_id] = (anm_name == "anm_open")
+            if anm_name == "anm_add_cartridge" then
+                -- New shell animation started: reset cancel_ready so stale timers from previous shell cannot fire prematurely
+                pump_reload_cancel_ready[wpn_id] = nil
+                pump_reload_aim_ready[wpn_id] = nil
+                pump_reload_shell_version[wpn_id] = (pump_reload_shell_version[wpn_id] or 0) + 1
+            end
+        end
         debug_log("[ANIM_PLAY] reload: wpn_id=" .. tostring(wpn_id) .. " name=" .. tostring(anm_name) .. " length=" .. tostring(len) .. "s")
     end
 end
 
 function on_game_start()
+    RegisterScriptCallback("on_before_key_press", on_before_key_press)
     RegisterScriptCallback("on_key_press", on_key_press)
     RegisterScriptCallback("on_key_release", on_key_release)
     RegisterScriptCallback("actor_on_update",actor_on_update)
