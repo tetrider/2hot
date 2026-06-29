@@ -81,7 +81,7 @@
 		<text>Aim/Zoom Mode</text>
 	</string>
 	<string id="ui_mcm_mcm_hot_aim_hint_desc">
-		<text>Hold: Hold key to aim (toggle OFF). Toggle: Tap to toggle aim (toggle ON). Hold+Toggle: Both behaviors enabled (toggle ON).</text>
+		<text>Hold: Native hold — engine manages aim directly (toggle OFF). Toggle: Tap to toggle aim (toggle ON). Hold+Toggle: Both behaviors (toggle ON). Hold (Mimick): Mimics hold via toggle system</text>
 	</string>
 
 	<!-- autowalkey -->
@@ -439,6 +439,9 @@
 	</string>
 	<string id="holdortoggle_main_hot_aim_lst_Hold+Toggle">
 		<text>Hold+Toggle</text>
+	</string>
+	<string id="holdortoggle_main_hot_aim_lst_HoldMimick">
+		<text>Hold (Mimick)</text>
 	</string>
 
 	<!-- Radio Content for hot_prone -->

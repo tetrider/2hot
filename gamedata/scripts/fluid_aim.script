@@ -129,7 +129,7 @@ local function is_weapon_pump_action(wpn)
 end
 
 -- Aim mode cache
-local hot_aim_mode = 0  -- 0=Hold, 1=Toggle, 2=Hold+Toggle
+local hot_aim_mode = 0  -- 0=Hold (Native), 1=Toggle, 2=Hold+Toggle, 3=Hold (Mimick)
 
 -- Rapid fire settings
 local rapid_fire_enabled = false
@@ -218,14 +218,14 @@ _G.fluid_aim_pump_reload_aim_ready = pump_reload_aim_ready
 
 -- Compatibility: check if holdortoggle is managing aim
 local function is_holdortoggle_managing_aim()
-    return hot_aim_mode == 0 or hot_aim_mode == 1 or hot_aim_mode == 2
+    return hot_aim_mode == 0 or hot_aim_mode == 1 or hot_aim_mode == 2 or hot_aim_mode == 3
 end
 
 local function should_aim_be_active()
     if not holdortoggle_state then return true end
     if not is_holdortoggle_managing_aim() then return true end
 
-    if hot_aim_mode == 0 then
+    if hot_aim_mode == 0 or hot_aim_mode == 3 then
         return holdortoggle_state.holding_aim or holdortoggle_state.aim_key_down
     end
 
@@ -295,10 +295,10 @@ local function actor_on_update()
 
     -- In Hold/Toggle/Hold+Toggle modes, use our flag instead of key_state for aim
     if is_holdortoggle_managing_aim() and holdortoggle_state then
-        -- Hold mode (0): use aim_key_down
+        -- Hold (Native/Mimick) mode (0/3): use aim_key_down
         -- Toggle mode (1): use aim_key_down (cleared on key release)
         -- Hold+Toggle mode (2): use aim_key_down only if NOT holding_aim (tap) OR if holding_aim is true (hold)
-        if hot_aim_mode == 0 then
+        if hot_aim_mode == 0 or hot_aim_mode == 3 then
             fluid_aim_aim = holdortoggle_state.aim_key_down
         elseif hot_aim_mode == 1 then
             fluid_aim_aim = holdortoggle_state.aim_key_down

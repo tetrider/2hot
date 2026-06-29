@@ -60,7 +60,7 @@ function on_mcm_load()
                 {id = "hot_walk", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_walk_hint", content = {{0,"Hold"}, {1,"Toggle"}, {2,"Hold+Toggle"}}},
                 {id = "hot_sprint", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_sprint_hint", content = {{0,"Hold"}, {1,"Toggle"}, {2,"Hold+Toggle"}}},
                 {id = "hot_lean", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_lean_hint", content = {{0,"Hold"}, {1,"Toggle"}, {2,"Hold+Toggle"}}},
-                {id = "hot_aim", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_aim_hint", content = {{0,"Hold"}, {1,"Toggle"}, {2,"Hold+Toggle"}}},
+                {id = "hot_aim", type = ui_mcm.kb_mod_radio, val = 2, def = 0, hint = "mcm_hot_aim_hint", content = {{0,"Hold"}, {1,"Toggle"}, {2,"Hold+Toggle"}, {3,"HoldMimick"}}},
                 {id = "debug_logging", type = "check", val = 1, def = false, hint = "holdortoggle_debug_logging_hint"},
             }},
             -- Autowalk Tab
@@ -161,10 +161,11 @@ function on_option_change()
     local hot_sprint = ui_mcm.get("holdortoggle/main/hot_sprint") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
     local hot_lean = ui_mcm.get("holdortoggle/main/hot_lean") -- 0=Hold, 1=Toggle, 2=Hold+Toggle
     local hot_prone = ui_mcm.get("holdortoggle/stance/hot_prone") -- 0=Disabled, 1=Hold, 2=Toggle, 3=Hold+Toggle
+    local hot_aim = ui_mcm.get("holdortoggle/main/hot_aim") or 0 -- 0=Hold (Native), 1=Toggle, 2=Hold+Toggle, 3=Hold (Mimick)
     local stance_system = ui_mcm.get("holdortoggle/stance/stance_system")
     local pronekey = ui_mcm.get("holdortoggle/stance/pronekey")
 
-    utils.debug_log("[CONFIG] Loaded MCM values - crouch: " .. tostring(hot_crouch) .. ", walk: " .. tostring(hot_walk) .. ", sprint: " .. tostring(hot_sprint) .. ", lean: " .. tostring(hot_lean) .. ", prone: " .. tostring(hot_prone))
+    utils.debug_log("[CONFIG] Loaded MCM values - crouch: " .. tostring(hot_crouch) .. ", walk: " .. tostring(hot_walk) .. ", sprint: " .. tostring(hot_sprint) .. ", lean: " .. tostring(hot_lean) .. ", prone: " .. tostring(hot_prone) .. ", aim: " .. tostring(hot_aim))
 
     -- Force all toggles ON unconditionally to recover from any stuck-off state (e.g. crash mid-hold).
     utils.debug_log("[CONFIG] Forcing all toggles on")
@@ -172,7 +173,13 @@ function on_option_change()
     get_console():execute("g_walk_toggle on")
     get_console():execute("g_sprint_toggle on")
     get_console():execute("g_lookout_toggle on")
-    get_console():execute("wpn_aim_toggle on")
+    -- Native Hold (0): keep wpn_aim_toggle off — engine manages aim via key_state polling.
+    -- All other modes (Toggle, Hold+Toggle, Hold Mimick) require toggle on.
+    if hot_aim == 0 then
+        get_console():execute("wpn_aim_toggle off")
+    else
+        get_console():execute("wpn_aim_toggle on")
+    end
 
     -- Handle stance system selection
     -- Progressive stance always activates (based on stance_system), others require hot_prone > 0
@@ -239,11 +246,12 @@ function on_option_change()
     -- Refresh toggle settings from game options
     state.refresh_toggle_settings()
     -- All toggles are always forced ON by this mod; ui_options won't reflect the console commands
+    -- Exception: wpn_aim_toggle is OFF in native Hold mode (0)
     state.is_crouch_toggled = true
     state.is_walk_toggled = true
     state.is_sprint_toggled = true
     state.is_leaning_toggled = true
-    state.is_aiming_toggled = true
+    state.is_aiming_toggled = (hot_aim ~= 0)
 
     utils.debug_log("[CONFIG] Final game toggle states - crouch: " .. tostring(state.is_crouch_toggled) .. ", walk: " .. tostring(state.is_walk_toggled) .. ", sprint: " .. tostring(state.is_sprint_toggled))
 

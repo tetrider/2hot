@@ -87,7 +87,7 @@ function on_before_key_press(dik, bind, dis, flags)
     -- on_before_key_press always fires even when bolt_cycle blocks the key.
     -- Schedule aim activation here so it fires regardless of on_key_press being suppressed.
     if bind == key_bindings.kWPN_ZOOM
-    and hot_aim == 0
+    and hot_aim == 3
     and is_bolt_cycling()
     and not axr_main.weapon_is_zoomed then
         schedule_aim_activate_after_bolt_cycle()
@@ -163,19 +163,25 @@ function on_key_press(key)
             end
         end
         if hot_aim == 0 then
+            -- Native Hold: engine handles zoom and bolt_cycle natively (wpn_aim_toggle off)
+            state.holding_aim = true
+            state.aim_key_down = true
+            utils.debug_log("[AIM] key_press: Native Hold - aim_key_down=true")
+        elseif hot_aim == 3 then
+            -- Hold (Mimick): mimics hold via toggle on/off (original Hold implementation)
             if is_bolt_cycling() and not axr_main.weapon_is_zoomed then
                 schedule_aim_activate_after_bolt_cycle()  -- idempotent if already scheduled in on_before_key_press
                 return
             end
             state.holding_aim = true
             state.aim_key_down = true
-            -- Disable wpn_aim_toggle to prevent engine toggle behavior in Hold mode
+            -- Disable wpn_aim_toggle to prevent engine toggle behavior
             get_console():execute("wpn_aim_toggle off")
             aim_toggle_disabled = true
-            utils.debug_log("[AIM] key_press: Hold mode - aim_key_down=true, wpn_aim_toggle=off")
+            utils.debug_log("[AIM] key_press: Hold (Mimick) - aim_key_down=true, wpn_aim_toggle=off")
             -- Safety: restore toggle after 5s if something goes wrong
             CreateTimeEvent("holdortoggle_aim_safety", "check", 5.0, function()
-                if (hot_aim == 0 or hot_aim == 2) and not state.holding_aim and aim_toggle_disabled then
+                if (hot_aim == 3 or hot_aim == 2) and not state.holding_aim and aim_toggle_disabled then
                     get_console():execute("wpn_aim_toggle on")
                     aim_toggle_disabled = false
                 end
@@ -269,17 +275,22 @@ function on_key_release(key)
         aim_toggled_off_by_press = false
 
         if hot_aim == 0 then
-            utils.debug_log("[AIM] key_release: Hold mode - holding_aim=" .. tostring(state.holding_aim) .. " is_zoomed=" .. tostring(axr_main.weapon_is_zoomed))
-            -- Re-enable toggle (was disabled in on_key_press)
+            -- Native Hold: engine deactivates aim automatically on key release
+            utils.debug_log("[AIM] key_release: Native Hold - clearing flags (engine handles un-aim)")
+            state.holding_aim = false
+            state.aim_key_down = false
+        elseif hot_aim == 3 then
+            -- Hold (Mimick): restore toggle and manually deactivate aim
+            utils.debug_log("[AIM] key_release: Hold (Mimick) - holding_aim=" .. tostring(state.holding_aim) .. " is_zoomed=" .. tostring(axr_main.weapon_is_zoomed))
             RemoveTimeEvent("holdortoggle_aim_safety", "check")
             get_console():execute("wpn_aim_toggle on")
             aim_toggle_disabled = false
-            utils.debug_log("[AIM] key_release: Hold mode - wpn_aim_toggle=on")
+            utils.debug_log("[AIM] key_release: Hold (Mimick) - wpn_aim_toggle=on")
             if state.holding_aim and is_bolt_cycling() then
-                utils.debug_log("[AIM] key_release: Hold mode - bolt cycling, scheduling deactivate after cycle")
+                utils.debug_log("[AIM] key_release: Hold (Mimick) - bolt cycling, scheduling deactivate after cycle")
                 schedule_aim_deactivate_after_bolt_cycle()
             elseif state.holding_aim and axr_main.weapon_is_zoomed then
-                utils.debug_log("[AIM] key_release: Hold mode - pressing zoom to deactivate")
+                utils.debug_log("[AIM] key_release: Hold (Mimick) - pressing zoom to deactivate")
                 level.press_action(key)
             end
             state.holding_aim = false
@@ -401,7 +412,7 @@ function on_key_release(key)
             end
         end
 
-        if aim_was_held and (hot_aim == 0 or hot_aim == 2) and (hot_sprint == 0 or hot_sprint == 2) then
+        if aim_was_held and (hot_aim == 0 or hot_aim == 2 or hot_aim == 3) and (hot_sprint == 0 or hot_sprint == 2) then
             if (state.holding_sprint or state.sprint_key_down) and not IsMoveState("mcSprint") and IsMoveState("mcFwd") then
                 CreateTimeEvent("holdortoggle_aim", "reactivate_sprint_after_aim", 0.05, function()
                     if (state.holding_sprint or state.sprint_key_down) and not IsMoveState("mcSprint") and IsMoveState("mcFwd") then
@@ -418,5 +429,5 @@ function on_update()
 end
 
 function is_hold_mode()
-    return hot_aim == 0
+    return hot_aim == 0 or hot_aim == 3
 end
