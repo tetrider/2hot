@@ -81,24 +81,24 @@
 		<text>Aim/Zoom Mode</text>
 	</string>
 	<string id="ui_mcm_mcm_hot_aim_hint_desc">
-		<text>Hold: Native hold — engine manages aim directly (toggle OFF). Toggle: Tap to toggle aim (toggle ON). Hold+Toggle: Both behaviors (toggle ON). Hold (Mimick): Mimics hold via toggle system</text>
+		<text>Hold: Native hold: engine manages aim directly (toggle OFF). Toggle: Tap to toggle aim (toggle ON). Hold+Toggle: Both behaviors (toggle ON). Hold (Mimick): Mimics hold via toggle system</text>
 	</string>
 
 	<!-- autowalkey -->
-	<string id="ui_mcm_mcm_holdortoggle_main_autowalkey">
+	<string id="ui_mcm_holdortoggle_autowalk_autowalkey">
 		<text>Autowalk Key</text>
 	</string>
-	<string id="ui_mcm_mcm_holdortoggle_main_autowalkey_desc">
+	<string id="ui_mcm_holdortoggle_autowalk_autowalkey_desc">
 		<text>Both the autowalk and forward/back keys will toggle autowalking off.</text>
 	</string>
 
 	<!-- modifier -->
-	<string id="ui_mcm_mcm_holdortoggle_main_modifier">
+	<string id="ui_mcm_holdortoggle_autowalk_modifier">
 		<text>Modifier</text>
 	</string>
 
 	<!-- mode -->
-	<string id="ui_mcm_mcm_holdortoggle_main_mode">
+	<string id="ui_mcm_holdortoggle_autowalk_mode">
 		<text>Mode</text>
 	</string>
 
@@ -158,13 +158,13 @@
 	<string id="holdortoggle_qol_pda_mode_lst_Default">
 		<text>Default</text>
 	</string>
-	<string id="holdortoggle_qol_pda_mode_lst_On Release">
+	<string id="holdortoggle_qol_pda_mode_lst_OnRelease">
 		<text>On Release</text>
 	</string>
-	<string id="holdortoggle_qol_pda_mode_lst_Hold to Zoom">
+	<string id="holdortoggle_qol_pda_mode_lst_HoldToZoom">
 		<text>Hold to Zoom</text>
 	</string>
-	<string id="holdortoggle_qol_pda_mode_lst_On Release + Zoom">
+	<string id="holdortoggle_qol_pda_mode_lst_OnReleaseZoom">
 		<text>On Release + Zoom</text>
 	</string>
 
@@ -459,21 +459,21 @@
 	</string>
 
 	<!-- List Content for stance_system -->
-	<string id="holdortoggle_stance_stance_system_lst_Vanilla Prone">
+	<string id="holdortoggle_stance_stance_system_lst_VanillaProne">
 		<text>Vanilla Prone</text>
 	</string>
-	<string id="holdortoggle_stance_stance_system_lst_Fluid Stance">
+	<string id="holdortoggle_stance_stance_system_lst_FluidStance">
 		<text>Fluid Stance (Dedicated prone key)</text>
 	</string>
-	<string id="holdortoggle_stance_stance_system_lst_Progressive (Hold to Prone)">
+	<string id="holdortoggle_stance_stance_system_lst_ProgressiveHoldToProne">
 		<text>Progressive (Hold Crouch to Prone)</text>
 	</string>
 
 	<!-- List Content for prog_hold_time_mode -->
-	<string id="holdortoggle_stance_prog_hold_time_mode_lst_Use MCM Hold Time">
+	<string id="holdortoggle_stance_prog_hold_time_mode_lst_UseMCMHoldTime">
 		<text>Use MCM Hold Time</text>
 	</string>
-	<string id="holdortoggle_stance_prog_hold_time_mode_lst_Custom Delay">
+	<string id="holdortoggle_stance_prog_hold_time_mode_lst_CustomDelay">
 		<text>Custom Delay</text>
 	</string>
 

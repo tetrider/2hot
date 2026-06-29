@@ -65,7 +65,7 @@ function on_mcm_load()
             }},
             -- Autowalk Tab
             {id = "autowalk", sh = true, text = "ui_mcm_holdortoggle_autowalk", gr = {
-                {id = "autowalkey", type = "key_bind", val = 2, def = DIK_keys.DIK_W},
+                {id = "autowalkey", type = "key_bind", val = 2, def = -1},
                 {id = "modifier", type = ui_mcm.kb_mod_radio, val = 2, def = 3, hint = "mcm_kb_modifier", content = {{0,"mcm_kb_mod_none"}, {1,"mcm_kb_mod_shift"}, {2,"mcm_kb_mod_ctrl"}, {3,"mcm_kb_mod_alt"}}},
                 {id = "mode", type = ui_mcm.kb_mod_radio, val = 2, def = 2, hint = "mcm_kb_mode", content = {{0,"mcm_kb_mode_press"}, {1,"mcm_kb_mode_dtap"}, {2,"mcm_kb_mode_hold"}}},
             }},
@@ -75,7 +75,7 @@ function on_mcm_load()
                 {id = "opposite_lean_cancel", type = "check", val = 1, def = false, hint = "opposite_lean_cancel_hint"},
                 {id = "hot_inventory", type = "check", val = 1, def = false, hint = "holdortoggle_inventory_on_release"},
                 {id = "block_crouch_in_inventory", type = "check", val = 1, def = false, hint = "block_crouch_in_inventory_hint"},
-                {id = "pda_mode", type = "list", val = 2, def = 0, hint = "pda_mode_hint", content = {{0,"Default"}, {1,"On Release"}, {2,"Hold to Zoom"}, {3,"On Release + Zoom"}}},
+                {id = "pda_mode", type = "list", val = 2, def = 0, hint = "pda_mode_hint", content = {{0,"Default"}, {1,"OnRelease"}, {2,"HoldToZoom"}, {3,"OnReleaseZoom"}}},
                 {id = "restore_hands_after_pda", type = "check", val = 1, def = false, hint = "restore_hands_after_pda_hint"},
                 {id = "prevent_weapon_detector", type = "check", val = 1, def = false, hint = "prevent_weapon_with_detector_hint"},
                 {id = "qaw_ignore_modifiers", type = "check", val = 1, def = false, hint = "qaw_ignore_modifiers_hint"},
@@ -83,11 +83,11 @@ function on_mcm_load()
             }},
             -- Rapid Fire Tab
             {id = "rapid_fire", sh = true, text = "ui_mcm_holdortoggle_rapid_fire", gr = {
-                {id = "rapid_fire", type = "check", val = 1, def = false, hint = "rapid_fire_hint"},
+                {id = "rapid_fire", type = "check", val = 1, def = true, hint = "rapid_fire_hint"},
                 {id = "aim_tap_window", type = "track", val = 2, def = 0.5, min = 0.1, max = 2.0, step = 0.05, hint = "aim_tap_window_hint"},
                 {id = "rapid_aim_pistol_delay", type = "track", val = 2, def = 0.1, min = 0.0, max = 3, step = 0.05, hint = "rapid_aim_pistol_delay_hint"},
                 {id = "rapid_aim_other_delay", type = "track", val = 2, def = 0.3, min = 0.0, max = 3, step = 0.05, hint = "rapid_aim_other_delay_hint"},
-                {id = "unjam_grace_period", type = "track", val = 2, def = 0, min = 0.0, max = 3.0, step = 0.1, hint = "unjam_grace_period_hint"},
+                -- {id = "unjam_grace_period", type = "track", val = 2, def = 0, min = 0.0, max = 3.0, step = 0.1, hint = "unjam_grace_period_hint"},
                 {id = "mag_reload_cancel", type = "check", val = 1, def = false, hint = "mag_reload_cancel_hint"},
                 {id = "mag_reload_cancel_delay", type = "track", val = 2, def = 0.2, min = 0.0, max = 1.0, step = 0.05, hint = "mag_reload_cancel_delay_hint"},
                 {id = "pump_reload_cancel", type = "check", val = 1, def = false, hint = "pump_reload_cancel_hint"},
@@ -102,7 +102,7 @@ function on_mcm_load()
             {id = "stance", sh = true, text = "ui_mcm_holdortoggle_stance", gr = {
                 -- General Prone Settings
                 {id = "title_general", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_general", size = {512, 50}, spacing = 20},
-                {id = "stance_system", type = "list", val = 2, def = 0, hint = "mcm_stance_system_hint", content = {{0,"Vanilla Prone"}, {1,"Fluid Stance"}, {2,"Progressive (Hold to Prone)"}}},
+                {id = "stance_system", type = "list", val = 2, def = 0, hint = "mcm_stance_system_hint", content = {{0,"VanillaProne"}, {1,"FluidStance"}, {2,"ProgressiveHoldToProne"}}},
 
                 -- Prone Keybind Settings
                 {id = "title_keybind", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_keybind", size = {512, 50}, spacing = 20},
@@ -117,7 +117,7 @@ function on_mcm_load()
 
                 -- Progressive Stance Settings
                 {id = "title_progressive", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_progressive", size = {512, 50}, spacing = 20},
-                {id = "prog_hold_time_mode", type = "list", val = 2, def = 0, hint = "mcm_prog_hold_time_mode_hint", content = {{0,"Use MCM Hold Time"}, {1,"Custom Delay"}}},
+                {id = "prog_hold_time_mode", type = "list", val = 2, def = 0, hint = "mcm_prog_hold_time_mode_hint", content = {{0,"UseMCMHoldTime"}, {1,"CustomDelay"}}},
                 {id = "prog_hold_time_custom", type = "track", val = 2, def = 200, min = 50, max = 1000, step = 50, hint = "mcm_prog_hold_time_custom_hint"},
             }},
         }
