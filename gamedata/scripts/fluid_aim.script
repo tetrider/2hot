@@ -32,6 +32,8 @@ local fluid_aim_single_fire_cooldown_active = {}  -- tracks if single-fire coold
 local fluid_aim_reload_interrupt_zoom_pending = {}  -- tracks per-weapon if pump-action interrupt with aim just happened (wpn_id -> true), prevents normal aim from pressing zoom too early
 local fluid_aim_weapon_type_cache = {}  -- caches weapon type ("pump_action" or "magazine") per wpn_id for efficient reload detection
 local fluid_aim_unjam_grace_period = 0  -- default unjam grace period in seconds (adjustable via MCM)
+local fluid_aim_draw_anim_length = {}   -- per-weapon draw animation length in seconds (captured from actor_on_hud_animation_play)
+local fluid_aim_reload_anim_length = {} -- per-weapon reload animation length in seconds (captured from actor_on_hud_animation_play)
 
 local function debug_log(msg)
     if holdortoggle_utils then holdortoggle_utils.debug_log(msg) end
@@ -128,23 +130,66 @@ local function is_weapon_pump_action(wpn)
     return wpn_type == "pump_action"
 end
 
+-- Try to get animation length by config key names using pcall (safe against bad input types)
+local function probe_anim_length(hud, ...)
+    for _, key in ipairs({...}) do
+        local ok, ms = pcall(game.get_motion_length, hud, key, 1)
+        if ok and ms and ms > 0 then return ms / 1000 end
+    end
+    return nil
+end
+
+-- Ensure draw animation length is cached, probing on demand if callback hasn't fired yet
+local function ensure_draw_anim_length(wpn)
+    local wpn_id = wpn:id()
+    if fluid_aim_draw_anim_length[wpn_id] then return end
+    local ini = system_ini()
+    local hud = ini and ini:r_string_ex(wpn:section(), "hud")
+    if not hud then return end
+    local len = probe_anim_length(hud, "anm_show", "anm_show_empty", "anm_draw")
+    if len then
+        fluid_aim_draw_anim_length[wpn_id] = len
+        debug_log("[ANIM_PROBE] draw: wpn_id=" .. tostring(wpn_id) .. " length=" .. tostring(len) .. "s via probe")
+    end
+end
+
+-- Ensure reload animation length is cached, probing on demand if callback hasn't fired yet
+local function ensure_reload_anim_length(wpn)
+    local wpn_id = wpn:id()
+    if fluid_aim_reload_anim_length[wpn_id] then return end
+    local ini = system_ini()
+    local hud = ini and ini:r_string_ex(wpn:section(), "hud")
+    if not hud then return end
+    -- pump-action: anm_bore is the pump cycle; magazine: anm_reload is the full reload
+    local len
+    if is_weapon_pump_action(wpn) then
+        len = probe_anim_length(hud, "anm_bore", "anm_reload", "anm_reload_1")
+    else
+        len = probe_anim_length(hud, "anm_reload", "anm_reload_empty", "anm_reload_1")
+    end
+    if len then
+        fluid_aim_reload_anim_length[wpn_id] = len
+        debug_log("[ANIM_PROBE] reload: wpn_id=" .. tostring(wpn_id) .. " length=" .. tostring(len) .. "s via probe")
+    end
+end
+
 -- Aim mode cache
 local hot_aim_mode = 0  -- 0=Hold (Native), 1=Toggle, 2=Hold+Toggle, 3=Hold (Mimick)
 
 -- Rapid fire settings
-local rapid_fire_enabled = false
-local rapid_aim_pistol_delay = 0.1
-local rapid_aim_other_delay = 0.3
+local rapid_fire_enabled = true
+local rapid_aim_pistol_modifier = 0.35  -- fraction of draw animation length before pistol is ready
+local rapid_aim_other_modifier = 0.35   -- fraction of draw animation length before other weapons are ready
 
 -- Magazine reload cancel settings
 local mag_reload_cancel_enabled = false
-local mag_reload_cancel_delay = 0.2
+local mag_reload_cancel_modifier = 0.1  -- fraction of reload animation length for the cancel window
 local mag_reload_cancel_ready = {}  -- tracks which weapons are ready to fire after mag reload (wpn_id -> true)
 local mag_reload_prev_ammo = {}  -- separate ammo tracking for magazine reload cancel (wpn_id -> ammo_count)
 
 -- Pump-action reload cancel settings
 local pump_reload_cancel_enabled = false
-local pump_reload_cancel_delay = 0.1
+local pump_reload_cancel_modifier = 0.1  -- fraction of reload animation length for the cancel window
 local pump_reload_cancel_ready = {}  -- tracks which weapons are ready to fire after pump reload (wpn_id -> true)
 local pump_reload_prev_ammo = {}  -- separate ammo tracking for pump-action reload cancel (wpn_id -> ammo_count)
 
@@ -199,13 +244,13 @@ function fluid_aim_update_settings()
     if ui_mcm then
         hot_aim_mode = ui_mcm.get("holdortoggle/main/hot_aim") or 0
         rapid_fire_enabled = ui_mcm.get("holdortoggle/rapid_fire/rapid_fire")
-        rapid_aim_pistol_delay = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_pistol_delay")
-        rapid_aim_other_delay = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_other_delay")
+        rapid_aim_pistol_modifier = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_pistol_modifier")
+        rapid_aim_other_modifier = ui_mcm.get("holdortoggle/rapid_fire/rapid_aim_other_modifier")
         fluid_aim_unjam_grace_period = ui_mcm.get("holdortoggle/rapid_fire/unjam_grace_period") or 0
         mag_reload_cancel_enabled = ui_mcm.get("holdortoggle/rapid_fire/mag_reload_cancel")
-        mag_reload_cancel_delay = ui_mcm.get("holdortoggle/rapid_fire/mag_reload_cancel_delay")
+        mag_reload_cancel_modifier = ui_mcm.get("holdortoggle/rapid_fire/mag_reload_cancel_modifier")
         pump_reload_cancel_enabled = ui_mcm.get("holdortoggle/rapid_fire/pump_reload_cancel")
-        pump_reload_cancel_delay = ui_mcm.get("holdortoggle/rapid_fire/pump_reload_cancel_delay")
+        pump_reload_cancel_modifier = ui_mcm.get("holdortoggle/rapid_fire/pump_reload_cancel_modifier")
     end
 end
 
@@ -266,21 +311,22 @@ local function fluid_aim_delay_switch_weapon_func()
     return true
 end
 
--- Get weapon switch delay based on rapid aim settings
-local function get_weapon_switch_delay(wpn_kind)
+-- Get weapon switch delay based on draw animation length and modifier fraction
+local function get_weapon_switch_delay(wpn, wpn_kind)
     if not rapid_fire_enabled then
-        -- Original behavior: only pistols get delay
         if wpn_kind == "w_pistol" then
             return 0.3
         end
         return nil
     end
-    
-    -- Rapid aim: all weapons get delays
+
+    if wpn then ensure_draw_anim_length(wpn) end
+    local wpn_id = wpn and wpn:id()
+    local draw_length = wpn_id and fluid_aim_draw_anim_length[wpn_id]
     if wpn_kind == "w_pistol" then
-        return rapid_aim_pistol_delay
+        return draw_length and (draw_length * rapid_aim_pistol_modifier) or 0.1
     else
-        return rapid_aim_other_delay
+        return draw_length and (draw_length * rapid_aim_other_modifier) or 0.3
     end
 end
 
@@ -551,7 +597,7 @@ local function actor_on_update()
                 fluid_aim_switch_weapon = false
                 local wpn_kind = SYS_GetParam(0,wpn:section(),"kind")
 
-                local delay = get_weapon_switch_delay(wpn_kind)
+                local delay = get_weapon_switch_delay(wpn, wpn_kind)
                 if delay then
                     CreateTimeEvent("fluid_aim_delay_switch_weapon", "fluid_aim_delay_switch_weapon", delay, fluid_aim_delay_switch_weapon_func)
                 end
@@ -832,8 +878,11 @@ local function actor_on_update()
                                         fluid_aim_reload_interrupt_zoom_pending[wpn_id_aim] = nil
                                         return true
                                     end)
+                                elseif pump_reload_cancel_enabled then
+                                    -- pump_cancel handles the timing: don't interrupt immediately, let cancel window expire
+                                    debug_log("[FIRE] pump-action: deferring to pump_cancel (fire held, shell loaded)")
                                 else
-                                    -- Fire button interrupt: queue fire
+                                    -- Fire button interrupt: queue fire (only when pump_cancel disabled)
                                     debug_log("[FIRE] pump-action interrupt: switch_state(0)")
                                     fluid_aim_fire_queued = true
                                     fluid_aim_reload_interrupted = true
@@ -857,7 +906,9 @@ local function actor_on_update()
                     else
                         -- Fallback: If exiting eReload while fire is held, queue fire (handles manual interrupt)
                         -- BUT ONLY if we didn't already handle the interrupt via ammo-increase (prev_reload_ammo >= 0 means we were tracking but no ammo increase yet)
-                        if fluid_aim_prev_wpn_state == 7 and state == 0 and fluid_aim_fire and not fluid_aim_reset_fire_on_load and fluid_aim_prev_reload_ammo >= 0 then
+                        if fluid_aim_prev_wpn_state == 7 and state == 0 and fluid_aim_fire and not fluid_aim_reset_fire_on_load and fluid_aim_prev_reload_ammo >= 0
+                           and not (pump_reload_cancel_enabled and is_weapon_pump_action(wpn))
+                           and not (mag_reload_cancel_enabled and mag_reload_cancel_ready[wpn_id]) then
                             debug_log("[FIRE] pump-action fallback: exited eReload with fire held, queue fire")
                             fluid_aim_fire_queued = true
                             fluid_aim_reload_interrupted = true
@@ -932,7 +983,7 @@ local function actor_on_update()
 
                 -- Magazine reload animation cancel (with adjustable delay)
                 -- Start timer window after round/magazine finishes loading (ammo increases)
-                if mag_reload_cancel_enabled and not is_weapon_jammed(wpn_id) then
+                if mag_reload_cancel_enabled and not is_weapon_jammed(wpn_id) and not is_weapon_pump_action(wpn) then
                     if state == 7 then
                         local cur_ammo = wpn:get_ammo_in_magazine()
                         local prev_mag_ammo = mag_reload_prev_ammo[wpn_id] or -1
@@ -978,10 +1029,12 @@ local function actor_on_update()
                                     return true
                                 end)
                             elseif not mag_reload_cancel_ready[wpn_id] then
-                                debug_log("[MAG_CANCEL] Round loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(mag_reload_cancel_delay) .. "s")
-                                -- Start timer for mag_reload_cancel_delay
+                                ensure_reload_anim_length(wpn)
+                                local reload_len = fluid_aim_reload_anim_length[wpn_id]
+                                local mag_cancel_delay = reload_len and (reload_len * mag_reload_cancel_modifier) or 0.2
+                                debug_log("[MAG_CANCEL] Round loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(mag_cancel_delay) .. "s (anim=" .. tostring(reload_len) .. "s * " .. tostring(mag_reload_cancel_modifier) .. ")")
                                 local wpn_id_capture = wpn_id
-                                CreateTimeEvent("mag_reload_cancel", "mag_" .. tostring(wpn_id), mag_reload_cancel_delay, function()
+                                CreateTimeEvent("mag_reload_cancel", "mag_" .. tostring(wpn_id), mag_cancel_delay, function()
                                     mag_reload_cancel_ready[wpn_id_capture] = true
                                     mag_reload_aim_ready[wpn_id_capture] = true  -- Also allow aim cancel
                                     debug_log("[MAG_CANCEL] Cancel window expired: wpn_id=" .. tostring(wpn_id_capture) .. " mag_reload_cancel_ready=true mag_reload_aim_ready=true")
@@ -999,6 +1052,7 @@ local function actor_on_update()
                     wpn:switch_state(0)
                     fluid_aim_fire_queued = true
                     mag_reload_cancel_ready[wpn_id] = nil
+                    fluid_aim_prev_reload_ammo = -1  -- prevent pump-action fallback from re-queuing on next frame
                 end
 
                 -- If aim interrupt flag is set while ready, exit reload and aim (even if button released)
@@ -1043,6 +1097,12 @@ local function actor_on_update()
 
                 -- Reset tracking when exiting reload state (always clear both tracking and ready flags)
                 if state ~= 7 then
+                    if mag_reload_cancel_enabled and mag_reload_cancel_ready[wpn_id] and fluid_aim_fire and not is_weapon_jammed(wpn_id) then
+                        fluid_aim_fire_queued = true
+                        fluid_aim_reload_interrupted = true
+                        fluid_aim_prev_reload_ammo = -1
+                        debug_log("[MAG_CANCEL] Reload ended with cancel ready+fire held: firing")
+                    end
                     if mag_reload_prev_ammo[wpn_id] or mag_reload_cancel_ready[wpn_id] or mag_reload_aim_ready[wpn_id] then
                         debug_log("[MAG_CANCEL] left eReload state: wpn_id=" .. tostring(wpn_id))
                     end
@@ -1053,7 +1113,7 @@ local function actor_on_update()
 
                 -- Pump-action reload animation cancel (with adjustable delay)
                 -- Start timer window after shell finishes loading (ammo increases)
-                if pump_reload_cancel_enabled and not is_weapon_jammed(wpn_id) then
+                if pump_reload_cancel_enabled and not is_weapon_jammed(wpn_id) and is_weapon_pump_action(wpn) then
                     if state == 7 then
                         local cur_ammo = wpn:get_ammo_in_magazine()
                         local prev_pump_ammo = pump_reload_prev_ammo[wpn_id] or -1
@@ -1072,12 +1132,17 @@ local function actor_on_update()
                             local delta = cur_ammo - prev_pump_ammo
                             debug_log("[PUMP_CANCEL] Ammo increased: wpn_id=" .. tostring(wpn_id) .. " prev=" .. tostring(prev_pump_ammo) .. " cur=" .. tostring(cur_ammo) .. " delta=" .. tostring(delta))
                             if not pump_reload_cancel_ready[wpn_id] then
-                                debug_log("[PUMP_CANCEL] Shell loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(pump_reload_cancel_delay) .. "s")
-                                -- Start timer for pump_reload_cancel_delay
+                                ensure_reload_anim_length(wpn)
+                                local reload_len = fluid_aim_reload_anim_length[wpn_id]
+                                local pump_cancel_delay = reload_len and (reload_len * pump_reload_cancel_modifier) or 0.2
+                                debug_log("[PUMP_CANCEL] Shell loaded, starting cancel window: wpn_id=" .. tostring(wpn_id) .. " delay=" .. tostring(pump_cancel_delay) .. "s (anim=" .. tostring(reload_len) .. "s * " .. tostring(pump_reload_cancel_modifier) .. ")")
                                 local wpn_id_capture = wpn_id
-                                CreateTimeEvent("pump_reload_cancel", "pump_" .. tostring(wpn_id), pump_reload_cancel_delay, function()
-                                    pump_reload_cancel_ready[wpn_id_capture] = true
-                                    pump_reload_aim_ready[wpn_id_capture] = true  -- Also allow aim cancel
+                                CreateTimeEvent("pump_reload_cancel", "pump_" .. tostring(wpn_id), pump_cancel_delay, function()
+                                    -- Only set ready if this reload is still being tracked (prevent late fire after cleanup)
+                                    if pump_reload_prev_ammo[wpn_id_capture] ~= nil then
+                                        pump_reload_cancel_ready[wpn_id_capture] = true
+                                        pump_reload_aim_ready[wpn_id_capture] = true
+                                    end
                                     debug_log("[PUMP_CANCEL] Cancel window expired, weapon can fire or aim: wpn_id=" .. tostring(wpn_id_capture))
                                     return true
                                 end)
@@ -1093,6 +1158,7 @@ local function actor_on_update()
                     wpn:switch_state(0)
                     fluid_aim_fire_queued = true
                     pump_reload_cancel_ready[wpn_id] = nil
+                    fluid_aim_prev_reload_ammo = -1  -- prevent pump-action fallback from re-queuing on next frame
                 end
 
                 -- If aim button is held and weapon is ready, exit and aim
@@ -1113,6 +1179,21 @@ local function actor_on_update()
 
                 -- Reset tracking when exiting reload state (always clear both tracking and ready flags)
                 if state ~= 7 then
+                    if pump_reload_cancel_enabled and fluid_aim_fire and not is_weapon_jammed(wpn_id) then
+                        if pump_reload_cancel_ready[wpn_id] then
+                            -- Cancel window had expired, fire now
+                            fluid_aim_fire_queued = true
+                            fluid_aim_reload_interrupted = true
+                            fluid_aim_prev_reload_ammo = -1
+                            debug_log("[PUMP_CANCEL] Reload ended with cancel ready+fire held: firing")
+                        elseif pump_reload_prev_ammo[wpn_id] ~= nil then
+                            -- Reload ended before cancel window, fire immediately
+                            fluid_aim_fire_queued = true
+                            fluid_aim_reload_interrupted = true
+                            fluid_aim_prev_reload_ammo = -1
+                            debug_log("[PUMP_CANCEL] Reload ended before cancel window+fire held: firing immediately")
+                        end
+                    end
                     if pump_reload_prev_ammo[wpn_id] or pump_reload_cancel_ready[wpn_id] or pump_reload_aim_ready[wpn_id] then
                         debug_log("[PUMP_CANCEL] left eReload state: wpn_id=" .. tostring(wpn_id))
                     end
@@ -1233,13 +1314,41 @@ local function ignore_fire_key_press()
 end
 
 
+-- Capture weapon draw and reload animation lengths via state-based detection
+-- Uses item:get_state() instead of animation name matching (names differ across weapon mods)
+function actor_on_hud_animation_play(anm_table, item)
+    if not (item and IsWeapon(item)) then return end
+    local anm_name = anm_table and anm_table.anm_name
+    if not anm_name then return end
+    local state = item:get_state()
+    if state ~= 1 and state ~= 7 then return end
+    local ini = system_ini()
+    local hud = ini and ini:r_string_ex(item:section(), "hud")
+    if not hud then return end
+    local ok, length_ms = pcall(game.get_motion_length, hud, anm_name, anm_table.anm_speed or 1)
+    if not ok or not length_ms or length_ms <= 0 then
+        debug_log("[ANIM_PLAY] get_motion_length failed: state=" .. tostring(state) .. " name=" .. tostring(anm_name) .. " ok=" .. tostring(ok) .. " ms=" .. tostring(length_ms))
+        return
+    end
+    local wpn_id = item:id()
+    local len = length_ms / 1000
+    if state == 1 then
+        fluid_aim_draw_anim_length[wpn_id] = len
+        debug_log("[ANIM_PLAY] draw: wpn_id=" .. tostring(wpn_id) .. " name=" .. tostring(anm_name) .. " length=" .. tostring(len) .. "s")
+    else
+        fluid_aim_reload_anim_length[wpn_id] = len
+        debug_log("[ANIM_PLAY] reload: wpn_id=" .. tostring(wpn_id) .. " name=" .. tostring(anm_name) .. " length=" .. tostring(len) .. "s")
+    end
+end
+
 function on_game_start()
     RegisterScriptCallback("on_key_press", on_key_press)
     RegisterScriptCallback("on_key_release", on_key_release)
     RegisterScriptCallback("actor_on_update",actor_on_update)
     RegisterScriptCallback("actor_on_weapon_jammed",actor_on_weapon_jammed)
     RegisterScriptCallback("on_option_change", ignore_fire_key_press)
-    
+    RegisterScriptCallback("actor_on_hud_animation_play", actor_on_hud_animation_play)
+
     -- Load initial settings
     fluid_aim_update_settings()
 end

@@ -323,20 +323,20 @@
 		<text>How long (in seconds) after tapping the aim key the game waits for the weapon to be ready before canceling the queued ADS. Only applies in Toggle and Hold+Toggle aim modes. Applies to any weapon switch — from another weapon, item, or empty hands.</text>
 	</string>
 
-	<!-- rapid_aim_pistol_delay -->
-	<string id="ui_mcm_rapid_aim_pistol_delay_hint">
-		<text>Pistol Ready Delay</text>
+	<!-- rapid_aim_pistol_modifier -->
+	<string id="ui_mcm_rapid_aim_pistol_modifier_hint">
+		<text>Pistol Ready Point</text>
 	</string>
-	<string id="ui_mcm_rapid_aim_pistol_delay_hint_desc">
-		<text>Time (in seconds) after drawing a pistol before the queued fire or ADS is triggered. Lower values skip more of the raise animation; increase if shots fire before the animation don't look right.</text>
+	<string id="ui_mcm_rapid_aim_pistol_modifier_hint_desc">
+		<text>Fraction (0.0–1.0) of the pistol draw animation that plays before queued fire or ADS is triggered. 0.35 = weapon ready after 35% of the animation. Lower = fires sooner; increase if shots fire before the weapon looks ready.</text>
 	</string>
 
-	<!-- rapid_aim_other_delay -->
-	<string id="ui_mcm_rapid_aim_other_delay_hint">
-		<text>Other Weapons Ready Delay</text>
+	<!-- rapid_aim_other_modifier -->
+	<string id="ui_mcm_rapid_aim_other_modifier_hint">
+		<text>Other Weapons Ready Point</text>
 	</string>
-	<string id="ui_mcm_rapid_aim_other_delay_hint_desc">
-		<text>Time (in seconds) after drawing a rifle, shotgun, or other weapon before the queued fire or ADS is triggered. Lower values skip more of the raise animation; increase if shots fire before the animation don't look right.</text>
+	<string id="ui_mcm_rapid_aim_other_modifier_hint_desc">
+		<text>Fraction (0.0–1.0) of the draw animation that plays before queued fire or ADS is triggered for rifles, shotguns, and other weapons. 0.35 = weapon ready after 35% of the animation. Lower = fires sooner; increase if shots fire before the weapon looks ready.</text>
 	</string>
 
 	<!-- unjam_grace_period -->
@@ -358,12 +358,12 @@
 		<text>Cancels the post-reload recovery animation as soon as the ammo counter updates after a magazine reload. No need to time a press - just hold fire or have ADS active beforehand and the cancel triggers automatically.</text>
 	</string>
 
-	<!-- mag_reload_cancel_delay -->
-	<string id="ui_mcm_mag_reload_cancel_delay_hint">
+	<!-- mag_reload_cancel_modifier -->
+	<string id="ui_mcm_mag_reload_cancel_modifier_hint">
 		<text>Magazine Cancel Window</text>
 	</string>
-	<string id="ui_mcm_mag_reload_cancel_delay_hint_desc">
-		<text>How long (in seconds) after the ammo counter updates that a held fire button or active ADS will trigger the cancel. Increase if animations don't look right.</text>
+	<string id="ui_mcm_mag_reload_cancel_modifier_hint_desc">
+		<text>Fraction (0.0–1.0) of the reload animation length used as the cancel window after the ammo counter updates. 0.1 = window lasts 10% of the reload animation. Increase if animations don't look right.</text>
 	</string>
 
 	<!-- pump_reload_cancel -->
@@ -374,12 +374,12 @@
 		<text>Cancels the post-reload recovery animation as soon as the ammo counter updates after the last shell is loaded. No need to time a press — just hold fire or have ADS active beforehand and the cancel triggers automatically.</text>
 	</string>
 
-	<!-- pump_reload_cancel_delay -->
-	<string id="ui_mcm_pump_reload_cancel_delay_hint">
+	<!-- pump_reload_cancel_modifier -->
+	<string id="ui_mcm_pump_reload_cancel_modifier_hint">
 		<text>Pump Cancel Window</text>
 	</string>
-	<string id="ui_mcm_pump_reload_cancel_delay_hint_desc">
-		<text>How long (in seconds) after the ammo counter updates that a held fire button or active ADS will trigger the cancel. Increase if animation don't look right.</text>
+	<string id="ui_mcm_pump_reload_cancel_modifier_hint_desc">
+		<text>Fraction (0.0–1.0) of the shell-load animation length used as the cancel window after the ammo counter updates. 0.1 = window lasts 10% of the shell-load animation. Increase if animations don't look right.</text>
 	</string>
 
 	<!-- ========================================== -->
