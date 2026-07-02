@@ -1,0 +1,420 @@
+-- holdortoggle/stance_systems/1d_stance.script
+-- 1D Stance System: moves character along prone - crouch - walk - run - sprint
+-- Crouch key: step down (tap = one step, hold = jump to prone after timer)
+-- Sprint key: step up (tap = one step from run = immediate sprint, hold = sprint after timer)
+-- Sprint release from sprint: return to run
+--
+-- Architecture note: on_before_key_press returning true causes the Anomaly engine to
+-- NOT call on_key_press for that key. So all press handling is done in on_before_key_press.
+--
+-- IMPORTANT: The engine toggles mcCrouch regardless of flags.ret_value=false.
+-- flags.ret_value only suppresses Lua callbacks, not the C++ toggle.
+-- Therefore we use a DEFERRED CORRECTION pattern:
+--   1. on_before_key_press records the desired target stance
+--   2. TimeEvent(0) fires on the next frame when the engine has settled
+--   3. apply_correction() reads actual IsMoveState() (now accurate) and corrects discrepancies
+
+local state = holdortoggle_state
+local utils = holdortoggle_utils
+
+local STANCE_PRONE  = 0  -- mcCrouch=T, mcAccel=T
+local STANCE_CROUCH = 1  -- mcCrouch=T, mcAccel=F
+local STANCE_WALK   = 2  -- mcCrouch=F, mcAccel=T
+local STANCE_RUN    = 3  -- mcCrouch=F, mcAccel=F
+local STANCE_SPRINT = 4  -- mcSprint active
+
+local current_stance = STANCE_RUN
+local sprint_active = false
+local crouch_key_held = false
+local sprint_key_held = false
+local toggling_programmatically = false
+local correction_target = nil
+
+local pronekey = DIK_keys.DIK_Z
+local pronekey_mode = 0
+local holding_prone_key = false
+local prone_activated_by_this_press = false
+
+function get_hold_time()
+    if not ui_mcm then return 0.2 end
+    local mode = ui_mcm.get("holdortoggle/stance/prog_hold_time_mode") or 0
+    if mode == 0 then
+        local presstime = ui_mcm.get("mcm/mcm_kb/mcm_kb_main/presstime") or 1.5
+        local dtaptime  = ui_mcm.get("mcm/mcm_kb/mcm_kb_main/dtaptime2") or 200
+        return (presstime * dtaptime) / 1000.0
+    else
+        local custom_ms = ui_mcm.get("holdortoggle/stance/prog_hold_time_custom") or 200
+        return custom_ms / 1000.0
+    end
+end
+
+function get_current_stance()
+    if IsMoveState("mcSprint") then return STANCE_SPRINT end
+    if IsMoveState("mcCrouch") and IsMoveState("mcAccel") then return STANCE_PRONE end
+    if IsMoveState("mcCrouch") then return STANCE_CROUCH end
+    if IsMoveState("mcAccel")  then return STANCE_WALK   end
+    return STANCE_RUN
+end
+
+local schedule_correction  -- forward declaration (apply_correction references it)
+
+-- Deferred state correction.
+-- Reads actual engine state (accurate since engine has settled by TimeEvent(0))
+-- and presses the minimal set of keys to reach correction_target.
+local function apply_correction()
+    if correction_target == nil then return true end
+    local target = correction_target
+    correction_target = nil
+
+    local need_crouch = (target == STANCE_PRONE or target == STANCE_CROUCH)
+    local need_walk   = (target == STANCE_PRONE or target == STANCE_WALK)
+    local need_sprint = (target == STANCE_SPRINT)
+
+    local has_crouch = IsMoveState("mcCrouch")
+    local has_walk   = IsMoveState("mcAccel")
+    local has_sprint = IsMoveState("mcSprint")
+
+    utils.debug_log(string.format("[1D_STANCE] apply_correction: target=%d need(c=%s w=%s s=%s) has(c=%s w=%s s=%s)",
+        target,
+        tostring(need_crouch), tostring(need_walk), tostring(need_sprint),
+        tostring(has_crouch), tostring(has_walk), tostring(has_sprint)))
+
+    toggling_programmatically = true
+
+    -- Sprint must be off before changing crouch/walk
+    if has_sprint and not need_sprint then
+        level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
+    end
+
+    -- Crouch correction
+    if has_crouch ~= need_crouch then
+        level.press_action(bind_to_dik(key_bindings.kCROUCH))
+    end
+
+    -- Walk correction
+    if has_walk ~= need_walk then
+        level.press_action(bind_to_dik(key_bindings.kACCEL))
+    end
+
+    -- Sprint activation: cancel lean then engage sprint.
+    -- When ADS is active, cancel it if possible and wait one frame for the engine
+    -- to settle before pressing sprint (same-frame ADS-cancel + sprint is ignored).
+    if need_sprint and not has_sprint then
+        if not (state.holding_lean_left or state.holding_lean_right) then
+            if IsMoveState("mcLLookout") then level.press_action(bind_to_dik(key_bindings.kL_LOOKOUT)) end
+            if IsMoveState("mcRLookout") then level.press_action(bind_to_dik(key_bindings.kR_LOOKOUT)) end
+        end
+        if not axr_main.weapon_is_zoomed then
+            level.press_action(bind_to_dik(key_bindings.kSPRINT_TOGGLE))
+        else
+            if not state.holding_aim then
+                level.press_action(bind_to_dik(key_bindings.kWPN_ZOOM))  -- cancel ADS
+            end
+            -- Delay=0: next frame the engine has processed the ADS cancel
+            CreateTimeEvent("1d_stance", "sprint_ads_wait", 0, function()
+                if not sprint_active or IsMoveState("mcSprint") then
+                    return true  -- Sprint cancelled or already active
+                end
+                if not axr_main.weapon_is_zoomed then
+                    schedule_correction(STANCE_SPRINT)
+                    return true
+                end
+                return false  -- Player still holding aim, keep polling
+            end)
+        end
+    end
+
+    toggling_programmatically = false
+
+    if holdortoggle_features_stance_vignette then
+        holdortoggle_features_stance_vignette.on_stance_change()
+    end
+
+    return true
+end
+
+-- Schedule a deferred correction to target.
+-- current_stance is updated immediately so Lua logic (hold timers, etc.) sees
+-- the correct desired stance right away.
+schedule_correction = function(target)
+    current_stance = target
+    correction_target = target
+    CreateTimeEvent("1d_stance", "apply_correction", 0, apply_correction)
+end
+
+-- Crouch press logic
+local function handle_crouch_press()
+    utils.debug_log("[1D_STANCE] crouch press: current_stance=" .. tostring(current_stance) .. " sprint_active=" .. tostring(sprint_active))
+
+    RemoveTimeEvent("1d_stance", "sprint_hold")
+    sprint_key_held = false
+
+    local target
+    if sprint_active then
+        sprint_active = false
+        target = STANCE_RUN
+    else
+        target = math.max(STANCE_PRONE, current_stance - 1)
+    end
+
+    schedule_correction(target)
+
+    if target ~= STANCE_PRONE then
+        local hold_time = get_hold_time()
+        CreateTimeEvent("1d_stance", "crouch_hold", hold_time, function()
+            utils.debug_log("[1D_STANCE] crouch hold timer: crouch_key_held=" .. tostring(crouch_key_held) .. " current_stance=" .. tostring(current_stance))
+            if crouch_key_held and current_stance ~= STANCE_PRONE then
+                schedule_correction(STANCE_PRONE)
+            end
+            return true
+        end)
+    end
+
+    crouch_key_held = true
+end
+
+-- Sprint press logic
+local function handle_sprint_press()
+    utils.debug_log("[1D_STANCE] sprint press: current_stance=" .. tostring(current_stance) .. " sprint_active=" .. tostring(sprint_active))
+
+    RemoveTimeEvent("1d_stance", "crouch_hold")
+    crouch_key_held = false
+
+    if sprint_active then
+        -- Already sprinting; release will handle exit
+        sprint_key_held = true
+        return
+    end
+
+    local target = math.min(STANCE_SPRINT, current_stance + 1)
+
+    if target == STANCE_SPRINT then
+        sprint_active = true
+    end
+
+    schedule_correction(target)
+
+    if target ~= STANCE_SPRINT then
+        local hold_time = get_hold_time()
+        CreateTimeEvent("1d_stance", "sprint_hold", hold_time, function()
+            utils.debug_log("[1D_STANCE] sprint hold timer: sprint_key_held=" .. tostring(sprint_key_held) .. " sprint_active=" .. tostring(sprint_active))
+            if sprint_key_held and not sprint_active then
+                sprint_active = true
+                schedule_correction(STANCE_SPRINT)
+            end
+            return true
+        end)
+    end
+
+    sprint_key_held = true
+end
+
+-- Interface
+
+function initialize()
+    utils.debug_log("[1D_STANCE] Initialized")
+    current_stance = get_current_stance()
+    sprint_active = (current_stance == STANCE_SPRINT)
+    crouch_key_held = false
+    sprint_key_held = false
+    correction_target = nil
+    holding_prone_key = false
+    prone_activated_by_this_press = false
+end
+
+function shutdown()
+    utils.debug_log("[1D_STANCE] Shutdown")
+    RemoveTimeEvent("1d_stance", "crouch_hold")
+    RemoveTimeEvent("1d_stance", "sprint_hold")
+    RemoveTimeEvent("1d_stance", "apply_correction")
+    RemoveTimeEvent("1d_stance", "sprint_ads_wait")
+    current_stance = STANCE_RUN
+    sprint_active = false
+    crouch_key_held = false
+    sprint_key_held = false
+    correction_target = nil
+    holding_prone_key = false
+    prone_activated_by_this_press = false
+end
+
+function is_stance_active()
+    return current_stance == STANCE_PRONE
+end
+
+function is_handling_crouch()
+    return true
+end
+
+function is_handling_walk()
+    return true
+end
+
+function is_handling_sprint()
+    return true
+end
+
+function set_pronekey(key)
+    pronekey = key
+end
+
+function set_pronekey_mode(mode)
+    pronekey_mode = mode or 0
+    utils.debug_log("[1D_STANCE] Prone key mode set to: " .. tostring(pronekey_mode))
+end
+
+function on_before_key_press(dik, bind, dis, flags)
+    if not utils.is_gameplay_active() then return false end
+    if toggling_programmatically then return false end
+
+    if bind == key_bindings.kCROUCH then
+        flags.ret_value = false
+        handle_crouch_press()
+        return true
+    end
+
+    if bind == key_bindings.kSPRINT_TOGGLE then
+        flags.ret_value = false
+        handle_sprint_press()
+        return true
+    end
+
+    if bind == key_bindings.kACCEL then
+        flags.ret_value = false
+        return true
+    end
+
+    return false
+end
+
+function on_key_press(key)
+    local bind = dik_to_bind(key)
+
+    -- Consume all three intercepted keys so movement_base.on_key_press never runs for them.
+    -- This prevents movement_base from double-toggling lean via kSPRINT_TOGGLE:
+    -- our lean cancel in apply_correction presses kL_LOOKOUT, which mysteriously triggers
+    -- a kSPRINT_TOGGLE on_key_press; if movement_base sees it, it reads stale
+    -- IsMoveState("mcLLookout")=true and presses kL_LOOKOUT again, re-activating lean.
+    if bind == key_bindings.kCROUCH or bind == key_bindings.kACCEL or bind == key_bindings.kSPRINT_TOGGLE then
+        utils.debug_log("[1D_STANCE] on_key_press for intercepted key: bind=" .. tostring(bind) ..
+            " toggling_programmatically=" .. tostring(toggling_programmatically))
+        return true
+    end
+
+    -- Sprint is active but engine didn't engage it yet (player wasn't moving forward).
+    -- Retry activation when forward key is pressed.
+    if bind == key_bindings.kFWD and sprint_active and not IsMoveState("mcSprint") then
+        utils.debug_log("[1D_STANCE] kFWD while sprint_active but not sprinting - retrying sprint activation")
+        schedule_correction(STANCE_SPRINT)
+        -- Don't return true; movement_base also needs to process kFWD
+    end
+
+    if pronekey_mode > 0 and key == pronekey then
+        if pronekey_mode == 1 then
+            holding_prone_key = true
+            if current_stance ~= STANCE_PRONE then
+                schedule_correction(STANCE_PRONE)
+            end
+        elseif pronekey_mode == 2 then
+            if current_stance == STANCE_PRONE then
+                schedule_correction(STANCE_RUN)
+            else
+                schedule_correction(STANCE_PRONE)
+            end
+        elseif pronekey_mode == 3 then
+            if current_stance ~= STANCE_PRONE then
+                schedule_correction(STANCE_PRONE)
+                prone_activated_by_this_press = true
+            else
+                prone_activated_by_this_press = false
+            end
+        end
+        return true
+    end
+
+    return false
+end
+
+function on_key_hold(key)
+    local bind = dik_to_bind(key)
+
+    if bind == key_bindings.kCROUCH then
+        crouch_key_held = true
+        return true
+    end
+
+    if bind == key_bindings.kSPRINT_TOGGLE then
+        sprint_key_held = true
+        return true
+    end
+
+    if bind == key_bindings.kACCEL then
+        return true
+    end
+
+    if pronekey_mode > 0 and key == pronekey then
+        if current_stance == STANCE_PRONE and pronekey_mode == 3 then
+            holding_prone_key = true
+        end
+        return true
+    end
+
+    return false
+end
+
+function on_key_release(key)
+    local bind = dik_to_bind(key)
+
+    if bind == key_bindings.kCROUCH then
+        utils.debug_log("[1D_STANCE] crouch released: current_stance=" .. tostring(current_stance))
+        crouch_key_held = false
+        RemoveTimeEvent("1d_stance", "crouch_hold")
+        utils.holdfix()
+        return true
+    end
+
+    if bind == key_bindings.kSPRINT_TOGGLE then
+        utils.debug_log("[1D_STANCE] sprint released: sprint_active=" .. tostring(sprint_active) .. " current_stance=" .. tostring(current_stance))
+        sprint_key_held = false
+        RemoveTimeEvent("1d_stance", "sprint_hold")
+
+        if sprint_active then
+            sprint_active = false
+            schedule_correction(STANCE_RUN)
+        end
+
+        utils.holdfix()
+        return true
+    end
+
+    if bind == key_bindings.kACCEL then
+        utils.holdfix()
+        return true
+    end
+
+    if pronekey_mode > 0 and key == pronekey then
+        if pronekey_mode == 1 then
+            if holding_prone_key and current_stance == STANCE_PRONE then
+                schedule_correction(STANCE_RUN)
+            end
+            holding_prone_key = false
+        elseif pronekey_mode == 2 then
+            -- Toggle — nothing on release
+        elseif pronekey_mode == 3 then
+            if holding_prone_key then
+                if current_stance == STANCE_PRONE then
+                    schedule_correction(STANCE_RUN)
+                end
+            else
+                if not prone_activated_by_this_press and current_stance == STANCE_PRONE then
+                    schedule_correction(STANCE_RUN)
+                end
+            end
+            holding_prone_key = false
+            prone_activated_by_this_press = false
+        end
+        utils.holdfix()
+        return true
+    end
+
+    return false
+end

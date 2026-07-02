@@ -16,6 +16,7 @@ local autowalk = nil
 local vanilla_prone = nil
 local fluid_stance = nil
 local progressive_stance = nil
+local one_d_stance = nil
 local qaw = nil
 local stance_vignette = nil
 
@@ -31,6 +32,7 @@ function set_modules(modules)
     vanilla_prone = modules.vanilla_prone
     fluid_stance = modules.fluid_stance
     progressive_stance = modules.progressive_stance
+    one_d_stance = modules.one_d_stance
     qaw = modules.qaw
     stance_vignette = modules.stance_vignette
 end
@@ -102,7 +104,7 @@ function on_mcm_load()
             {id = "stance", sh = true, text = "ui_mcm_holdortoggle_stance", gr = {
                 -- General Prone Settings
                 {id = "title_general", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_general", size = {512, 50}, spacing = 20},
-                {id = "stance_system", type = "list", val = 2, def = 0, hint = "mcm_stance_system_hint", content = {{0,"VanillaProne"}, {1,"FluidStance"}, {2,"ProgressiveHoldToProne"}}},
+                {id = "stance_system", type = "list", val = 2, def = 0, hint = "mcm_stance_system_hint", content = {{0,"VanillaProne"}, {1,"FluidStance"}, {2,"ProgressiveHoldToProne"}, {3,"1DStance"}}},
 
                 -- Prone Keybind Settings
                 {id = "title_keybind", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_holdortoggle_stance_keybind", size = {512, 50}, spacing = 20},
@@ -183,7 +185,7 @@ function on_option_change()
 
     -- Handle stance system selection
     -- Progressive stance always activates (based on stance_system), others require hot_prone > 0
-    local should_activate_stance = (stance_system == 2) or (hot_prone and hot_prone > 0)
+    local should_activate_stance = (stance_system == 2) or (stance_system == 3) or (hot_prone and hot_prone > 0)
 
     if should_activate_stance then
         -- Note: Crouch and walk toggles are always ON now
@@ -210,6 +212,9 @@ function on_option_change()
         elseif stance_system == 2 then
             state.active_stance_system = progressive_stance
             utils.debug_log("[CONFIG] Activating progressive stance system (hold to prone)")
+        elseif stance_system == 3 then
+            state.active_stance_system = one_d_stance
+            utils.debug_log("[CONFIG] Activating 1D stance system")
         else
             -- Default to vanilla prone
             state.active_stance_system = vanilla_prone

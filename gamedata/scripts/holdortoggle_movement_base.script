@@ -142,6 +142,17 @@ end
 
 function on_before_key_press(dik, bind, dis, flags)
     if bind == key_bindings.kSPRINT_TOGGLE then
+        -- Skip sprint state tracking if the active stance system owns sprint.
+        -- This prevents state.holding_sprint from being set during programmatic
+        -- sprint presses (toggling_programmatically bypasses 1D stance's own guard).
+        local stance_handles_sprint = state.active_stance_system and
+            state.active_stance_system.is_handling_sprint and
+            state.active_stance_system.is_handling_sprint()
+
+        if stance_handles_sprint then
+            return false  -- Stance system owns sprint entirely; skip tracking and hot_sprint_cancel blocking
+        end
+
         -- For Hold mode (0): Set holding state immediately (actor_on_update controls activation)
         -- For Hold+Toggle mode (2): Set sprint_key_down to track press (holding_sprint set later in on_key_hold)
         if hot_sprint == 0 then
